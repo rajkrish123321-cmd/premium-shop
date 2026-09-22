@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://placeholder.supabase.co";
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "placeholder";
-const supabase = createClient(supabaseUrl, supabaseKey);
+// Safe initialization that avoids build-time URL crashes
+const getSupabase = () => {
+	const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://j36YzXcDP5xthE.supabase.co";
+	const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder";
+	return createClient(url, key);
+};
 
 export async function POST(request: Request) {
 	try {
@@ -14,6 +17,7 @@ export async function POST(request: Request) {
 			return NextResponse.json({ error: 'Phone and Name are required' }, { status: 400 });
 		}
 
+		const supabase = getSupabase();
 		const { data, error } = await supabase
 			.from('customers')
 			.upsert(
