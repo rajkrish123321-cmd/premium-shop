@@ -1,75 +1,69 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
+import Script from "next/script";
 
-type Product = {
-	id: string;
-	name: string;
-	price: number;
-	image: string;
-	description: string;
-};
+const PRODUCTS = [
+	["prod_1", "Akruti Collection Oxidised Navratri Damini Maangtikka", 599, "/item1.jpg"],
+	["prod_2", "Etnico 18k Gold Plated Kundan Kamarband/Waist Chain", 426, "/item2.jpg"],
+	["prod_3", "Palak Art Heritage Austrian Stone Pearl Necklace Set", 1176, "/item3.jpg"],
+	["prod_4", "Maharani Jewels Oxidised Pota Stone Pearl Jhumki", 305, "/item4.jpg"],
+	["prod_5", "Darshana Jewels Oxidised Plated Dangler Earrings (Large)", 77, "/item5.jpg"],
+	["prod_6", "Darshana Jewels Oxidised Plated Dangler Earrings (Small)", 52, "/item6.jpg"],
+] as const;
 
-const PRODUCTS: Product[] = [
-	{ id: "prod_1", name: "Oxidised Navratri Damini Maangtikka", price: 599, image: "/item1.jpg", description: "Stunning oxidised plated finish." },
-	{ id: "prod_2", name: "18k Gold Plated Kundan Kamarband", price: 426, image: "/item2.jpg", description: "White stone studded waist chain." },
-	{ id: "prod_3", name: "Austrian Stone Pearl Necklace Set", price: 1176, image: "/item3.jpg", description: "Pearl and bead necklace with stones." },
-	{ id: "prod_4", name: "Oxidised Pota Stone Pearl Jhumki", price: 305, image: "/item4.jpg", description: "Elegant black pearl jhumki earrings." },
-	{ id: "prod_5", name: "Oxidised Plated Dangler Earrings", price: 77, image: "/item5.jpg", description: "Statement oxidised dangler earrings." },
-	{ id: "prod_6", name: "Oxidised Plated Small Dangler Earrings", price: 52, image: "/item6.jpg", description: "Lightweight everyday earrings." },
-];
+type Cart = Record<string, number>;
+const money = (n: number) => `₹${n.toLocaleString("en-IN", { maximumFractionDigits: 2 })}`;
 
-export default function Page() {
-	const [cart, setCart] = useState<Record<string, number>>({});
+export default function TrendyJewelleryStore() {
+	const [cart, setCart] = useState<Cart>({});
 	const [checkout, setCheckout] = useState(false);
+	const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", landmark: "", pincode: "" });
+	const [status, setStatus] = useState("");
 
-	const total = PRODUCTS.reduce((sum, product) => sum + product.price * (cart[product.id] || 0), 0);
-	const count = Object.values(cart).reduce((sum, quantity) => sum + quantity, 0);
+	const subtotal = useMemo(() => PRODUCTS.reduce((sum, [id, , price]) => sum + price * (cart[id] || 0), 0), [cart]);
+	const count = Object.values(cart).reduce((a, b) => a + b, 0);
+	const gst = form.pincode.length === 6 && subtotal ? subtotal * .03 : 0;
+	const total = subtotal + gst;
+	const complete = !!(form.name && form.email && form.phone.length >= 10 && form.address && gst);
 
-	const changeQuantity = (id: string, amount: number) => {
-		setCart((current) => {
-			const quantity = Math.max(0, (current[id] || 0) + amount);
-			const next = { ...current };
-			if (quantity) next[id] = quantity;
-			else delete next[id];
-			return next;
-		});
+	const change = (id: string, amount: number) => setCart(old => {
+		const quantity = Math.max(0, (old[id] || 0) + amount);
+		const next = { ...old };
+		if (quantity) next[id] = Math.min(quantity, 20); else delete next[id];
+		return next;
+	});
+	const setField = (key: keyof typeof form, value: string) => setForm(old => ({ ...old, [key]: value }));
+
+	const pay = async () => {
+		if (!complete || !(window as any).Razorpay) return;
+		setStatus("Initializing secure checkout...");
+		try {
+			const response = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: total }) });
+			const order = await response.json();
+			if (!order.orderId) throw new Error("Unable to create order");
+			const razorpay = new (window as any).Razorpay({
+				key: order.keyId, amount: order.amount, currency: order.currency, order_id: order.orderId,
+				name: "TRENDY JEWELLERY", prefill: { name: form.name, email: form.email, contact: form.phone }, theme: { color: "#b38728" },
+				handler: async (payment: any) => {
+					setStatus("Verifying payment...");
+					const verified = await fetch("/api/verify", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payment) });
+					if ((await verified.json()).success) { alert("Order confirmed! Payment ID: " + payment.razorpay_payment_id); setCart({}); setCheckout(false); setStatus(""); }
+				},
+			});
+			razorpay.open();
+		} catch { setStatus("Payment could not be initialized. Please try again."); }
 	};
 
-	return (
-		<main style={{ minHeight: "100vh", background: "linear-gradient(135deg,#fffaf5,#f0edf5)", color: "#171717", fontFamily: "Arial,sans-serif" }}>
-			<div style={{ background: "#111", color: "#d4af37", padding: 8, textAlign: "center", fontSize: 12, letterSpacing: 1 }}>FREE SHIPPING • SECURE CHECKOUT • PREMIUM QUALITY</div>
-			<header style={{ position: "sticky", top: 0, zIndex: 2, display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 6%", background: "#ffffffdd", backdropFilter: "blur(10px)", borderBottom: "1px solid #eadba9" }}>
-				<h1 style={{ margin: 0, color: "#b8860b", letterSpacing: 2, cursor: "pointer" }} onClick={() => setCheckout(false)}>TRENDY JEWELLERY</h1>
-				<button onClick={() => total && setCheckout(true)} style={{ border: 0, borderRadius: 30, padding: "11px 18px", background: "#111", color: "#d4af37", fontWeight: 700, cursor: total ? "pointer" : "default" }}>🛒 Cart ({count}) · ₹{total.toLocaleString("en-IN")}</button>
-			</header>
-
-			<section style={{ maxWidth: 1200, margin: "auto", padding: "55px 20px" }}>
-				{!checkout ? <>
-					<div style={{ textAlign: "center", marginBottom: 45 }}><h2 style={{ fontSize: 42, fontWeight: 300 }}>Elegance, <strong style={{ color: "#d4af37" }}>Redefined.</strong></h2></div>
-					<div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 28 }}>
-						{PRODUCTS.map((product) => <article key={product.id} style={{ overflow: "hidden", borderRadius: 18, background: "#fff", boxShadow: "0 8px 25px #00000012" }}>
-							<div style={{ height: 280, background: "#f7f7f7" }}><img src={product.image} alt={product.name} style={{ width: "100%", height: "100%", objectFit: "cover" }} /></div>
-							<div style={{ padding: 22 }}><h3>{product.name}</h3><p style={{ color: "#666", minHeight: 38 }}>{product.description}</p><strong style={{ display: "block", color: "#b8860b", fontSize: 23, marginBottom: 18 }}>₹{product.price.toLocaleString("en-IN")}</strong>
-								{cart[product.id] ? <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", background: "#111", color: "#fff", borderRadius: 30, padding: 10 }}><button onClick={() => changeQuantity(product.id, -1)} style={buttonStyle}>−</button><span>{cart[product.id]} in cart</span><button onClick={() => changeQuantity(product.id, 1)} style={buttonStyle}>+</button></div> : <div style={{ display: "flex", gap: 10 }}><button onClick={() => changeQuantity(product.id, 1)} style={{ ...buttonStyle, flex: 1, color: "#111", border: "1px solid #111" }}>Add to Cart</button><button onClick={() => { changeQuantity(product.id, 1); setCheckout(true); }} style={{ ...buttonStyle, flex: 1, background: "#111", color: "#fff" }}>Buy Now</button></div>}
-							</div>
-						</article>)}
-					</div>
-					{total > 0 && <button onClick={() => setCheckout(true)} style={{ display: "block", margin: "45px auto 0", padding: "17px 35px", border: 0, borderRadius: 30, background: "#d4af37", color: "#fff", fontWeight: 700, fontSize: 16 }}>Proceed to Checkout · ₹{total.toLocaleString("en-IN")}</button>}
-				</> : <Checkout total={total} cart={cart} changeQuantity={changeQuantity} back={() => setCheckout(false)} />}
-			</section>
-		</main>
+	const input = (key: keyof typeof form, placeholder: string, type = "text") => (
+		<input type={type} placeholder={placeholder} value={form[key]} onChange={e => setField(key, e.target.value.replace(key === "phone" || key === "pincode" ? /\D/g : /^$/, ""))} maxLength={key === "phone" ? 10 : key === "pincode" ? 6 : undefined} />
 	);
+
+	return <main>
+		<Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="afterInteractive" />
+		<style>{`*{box-sizing:border-box}body{margin:0;font-family:Arial,sans-serif;color:#111}.gold{background:linear-gradient(90deg,#aa771c,#fcf6ba,#b38728);background-clip:text;-webkit-background-clip:text;color:transparent}.marquee{padding:10px;text-align:center;background:#fafafa;color:#b38728;font-size:12px;font-weight:bold;letter-spacing:1px}header{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:22px 5%;background:#fffffff7;border-bottom:1px solid #eee}h1{font-size:26px;letter-spacing:2px;margin:0;cursor:pointer}button{cursor:pointer}input{width:100%;padding:15px;border:1px solid #e5e5e5;border-radius:7px;font-size:15px}.wrap{max-width:1200px;margin:auto;padding:55px 20px}.hero{text-align:center;margin-bottom:50px}.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:35px}.card{border:1px solid #eee;padding:16px;transition:.25s}.card:hover{transform:translateY(-4px);box-shadow:0 12px 30px #0000000d}.photo{height:300px;background:#fafafa}.photo img{width:100%;height:100%;object-fit:cover}.card h3{font-size:16px;line-height:1.4}.price{color:#b38728;font-size:20px;font-weight:bold}.actions{display:flex;gap:8px}.actions button,.checkout{flex:1;padding:14px;border:1px solid #111;background:white;font-weight:bold}.actions .dark,.dark{background:#111;color:white}.summary,.totals{border:1px solid #eee;padding:22px;margin:25px 0}.checkoutBox{max-width:650px;margin:auto}.fields{display:grid;gap:14px}.row{display:grid;grid-template-columns:1fr 1fr;gap:14px}.line{display:flex;justify-content:space-between;margin:12px 0}.pay{width:100%;padding:18px;border:0;background:#111;color:#fff;font-weight:bold;font-size:15px}@media(max-width:600px){header{padding:18px}.row{grid-template-columns:1fr}h1{font-size:20px}}`}</style>
+		<div className="marquee">✨ EXCLUSIVE JEWELLERY COLLECTION ✨ SECURE CHECKOUT ✨ NATIONWIDE DELIVERY ✨</div>
+		<header><h1 className="gold" onClick={() => setCheckout(false)}>TRENDY JEWELLERY</h1><button className="dark" onClick={() => subtotal && setCheckout(true)} style={{padding:"12px 18px",border:0}}>CART ({count}) · {money(subtotal)}</button></header>
+		<div className="wrap">{!checkout ? <><div className="hero"><h2>Elegance, <span className="gold">Redefined.</span></h2></div><div className="grid">{PRODUCTS.map(([id,name,price,image]) => <article className="card" key={id}><div className="photo"><img src={image} alt={name}/></div><h3>{name}</h3><div className="price">{money(price)}</div>{cart[id] ? <div className="actions"><button onClick={() => change(id,-1)}>-</button><b>{cart[id]} IN CART</b><button onClick={() => change(id,1)}>+</button></div> : <div className="actions"><button onClick={() => change(id,1)}>ADD TO CART</button><button className="dark" onClick={() => { change(id,1); setCheckout(true); }}>BUY NOW</button></div>}</article>)}</div>{subtotal > 0 && <p style={{textAlign:"center",marginTop:45}}><button className="dark" style={{padding:"18px 45px",border:0,fontWeight:"bold"}} onClick={() => setCheckout(true)}>PROCEED TO CHECKOUT</button></p>}</> : <section className="checkoutBox"><button onClick={() => setCheckout(false)} style={{border:0,background:"none",color:"#b38728",fontWeight:"bold"}}>← BACK TO SHOP</button><h2>CHECKOUT</h2><div className="summary"><b>ORDER SUMMARY</b>{PRODUCTS.filter(([id]) => cart[id]).map(([id,name,price]) => <div className="line" key={id}><span>{name} × {cart[id]}</span><span>{money(price * cart[id])}</span></div>)}</div><div className="fields"><h3>SHIPPING DETAILS</h3>{input("name","Full Name") }<div className="row">{input("email","Email Address","email")}{input("phone","Phone Number","tel")}</div>{input("address","Full Shipping Address")}{<div className="row">{input("landmark","Landmark (Optional)")}{input("pincode","Pincode")}</div>}</div><div className="totals"><div className="line"><span>Subtotal</span><span>{money(subtotal)}</span></div><div className="line"><span>GST (3%)</span><span>{gst ? money(gst) : "Enter pincode"}</span></div><div className="line" style={{fontSize:22,fontWeight:"bold",borderTop:"1px solid #eee",paddingTop:14}}><span>Total</span><span>{money(total)}</span></div></div><button className="pay" disabled={!complete} onClick={pay}>{status || (complete ? `PAY ${money(total)}` : "COMPLETE FORM TO PAY")}</button></section>}</div>
+	</main>;
 }
-
-const buttonStyle: React.CSSProperties = { border: 0, background: "transparent", padding: "8px 14px", borderRadius: 25, cursor: "pointer", fontWeight: 700 };
-
-function Checkout({ total, cart, changeQuantity, back }: { total: number; cart: Record<string, number>; changeQuantity: (id: string, amount: number) => void; back: () => void }) {
-	return <div style={{ maxWidth: 650, margin: "auto", background: "#ffffffdd", borderRadius: 20, padding: 35, boxShadow: "0 15px 40px #0001" }}>
-		<button onClick={back} style={{ border: 0, background: "none", color: "#b8860b", cursor: "pointer" }}>← Return to collection</button><h2>Premium Delivery</h2>
-		{Object.entries(cart).map(([id, quantity]) => { const product = PRODUCTS.find((item) => item.id === id); return product && <div key={id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 0", borderBottom: "1px solid #eee" }}><span>{product.name}<br /><b>₹{product.price}</b></span><span><button onClick={() => changeQuantity(id, -1)} style={buttonStyle}>−</button>{quantity}<button onClick={() => changeQuantity(id, 1)} style={buttonStyle}>+</button></span></div>; })}
-		<input placeholder="Full name" style={inputStyle} /><input placeholder="Email address" type="email" style={inputStyle} /><input placeholder="Phone number" style={inputStyle} /><textarea placeholder="Shipping address" style={{ ...inputStyle, minHeight: 90 }} /><input placeholder="Pincode" style={inputStyle} /><h2 style={{ textAlign: "right" }}>Total: ₹{total.toLocaleString("en-IN")}</h2><button style={{ width: "100%", padding: 16, border: 0, borderRadius: 30, background: "#d4af37", color: "white", fontWeight: 700 }}>Secure Payment</button>
-	</div>;
-}
-
-const inputStyle: React.CSSProperties = { width: "100%", boxSizing: "border-box", padding: 14, marginTop: 14, border: "1px solid #ddc987", borderRadius: 10, fontSize: 15 };
