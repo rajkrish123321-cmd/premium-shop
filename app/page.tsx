@@ -15,52 +15,26 @@ const products: Product[] = [
 
 export default function TrendyJewelleryStore() {
 	const [cart, setCart] = useState<Record<string, number>>({});
+	const [selected, setSelected] = useState<Record<string, boolean>>({});
 	const [checkout, setCheckout] = useState(false);
 	const [showLogin, setShowLogin] = useState(false);
-	const [name, setName] = useState("");
-	const [phone, setPhone] = useState("");
-	const [email, setEmail] = useState("");
-	const [address, setAddress] = useState("");
-	const [pincode, setPincode] = useState("");
-	const [userName, setUserName] = useState("");
-
-	const total = useMemo(() => products.reduce((sum, p) => sum + p.price * (cart[p.id] || 0), 0), [cart]);
-	const count = Object.values(cart).reduce((sum, n) => sum + n, 0);
-	const change = (id: string, delta: number) => setCart((old) => {
-		const next = Math.max(0, (old[id] || 0) + delta);
-		const result = { ...old };
-		if (next) result[id] = next; else delete result[id];
-		return result;
+	const [user, setUser] = useState("");
+	const [form, setForm] = useState({ name: "", email: "", phone: "", address: "", pincode: "" });
+	const count = Object.values(cart).reduce((a, b) => a + b, 0);
+	const total = useMemo(() => products.reduce((sum, p) => sum + p.price * (selected[p.id] ? cart[p.id] || 0 : 0), 0), [cart, selected]);
+	const update = (id: string, delta: number) => setCart(old => {
+		const quantity = Math.max(0, (old[id] || 0) + delta), next = { ...old };
+		if (quantity) next[id] = quantity; else delete next[id];
+		if (delta > 0 && !old[id]) setSelected(s => ({ ...s, [id]: true }));
+		return next;
 	});
+	const valid = form.name.length > 2 && form.email.includes("@") && form.phone.length === 10 && form.address.length > 5 && form.pincode.length === 6 && total > 0;
+	const change = (key: keyof typeof form, value: string) => setForm(f => ({ ...f, [key]: value }));
 
-	const handleLogin = async () => {
-		if (phone.length !== 10 || !name) return alert("Enter valid Name and 10-digit Phone.");
-		try {
-			const res = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: "+91" + phone, name, age: null, gender: "Not Specified" }) });
-			if (res.ok) { alert(`✅ Welcome ${name}! Account secured.`); setUserName(name); setShowLogin(false); } else alert("Login failed.");
-		} catch { alert("Network error."); }
-	};
-
-	const loadRazorpay = () => new Promise((resolve) => {
-		if (typeof window !== "undefined" && (window as any).Razorpay) return resolve(true);
-		const script = document.createElement("script"); script.src = "https://checkout.razorpay.com/v1/checkout.js";
-		script.onload = () => resolve(true); script.onerror = () => resolve(false); document.body.appendChild(script);
-	});
-	const handlePayment = async () => {
-		if (!(await loadRazorpay())) return alert("Razorpay failed to load.");
-		const res = await fetch("/api/checkout", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ amount: total * 100, name, email, phone, address, pincode, cart }) });
-		const data = await res.json();
-		new (window as any).Razorpay({ key: data.keyId, amount: data.amount, currency: "INR", name: "TRENDY JEWELLERY", order_id: data.orderId, prefill: { name, email, contact: phone }, theme: { color: "#b38728" }, handler: async (response: any) => {
-			const shipRes = await fetch("/api/ship", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ orderId: response.razorpay_payment_id, name, email, phone, address, pincode, cart }) });
-			const shipData = await shipRes.json(); setCart({}); setCheckout(false);
-			window.location.href = `/success?order_id=${response.razorpay_payment_id}&tracking=${shipData.awb_number || "PENDING"}`;
-		} }).open();
-	};
-
-	return <main className="store"><style>{`*{box-sizing:border-box}body{margin:0;background:#fafafa;color:#111;font-family:Arial,sans-serif}.top{padding:9px;text-align:center;background:#111;color:#d4af37;font-size:12px;letter-spacing:2px}.header{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:20px 6%;background:#fff;border-bottom:1px solid #eee}.brand{margin:0;color:#b38728;letter-spacing:2px}.actions{display:flex;gap:10px;align-items:center}button{cursor:pointer;font-weight:bold;border-radius:4px;padding:11px 18px}.dark{background:#111;color:#fff;border:0}.outline{background:#fff;border:1px solid #ccc}.gold{background:#b38728;color:#fff;border:0}.content{max-width:1200px;margin:auto;padding:50px 20px}.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px}.card{padding:15px;background:#fff;border:1px solid #eee;border-radius:10px;text-align:center}.card img{width:100%;height:300px;object-fit:cover;border-radius:6px}.price{color:#b38728;font-size:20px;font-weight:bold}.controls{display:flex;justify-content:center;gap:8px;align-items:center}.checkout{max-width:650px;margin:auto;padding:30px;background:#fff;border:1px solid #eee;border-radius:10px}.field{width:100%;padding:13px;margin:7px 0;border:1px solid #ddd;border-radius:4px}.modal{position:fixed;inset:0;z-index:5;display:grid;place-items:center;background:#0009}.modal>div{position:relative;width:min(430px,90%);padding:35px;background:#fff;border-radius:10px}`}</style>
-		<div className="top">✨ NATIONWIDE SECURE DELIVERY ✨ AUTHENTIC BRANDED JEWELLERY ✨</div>
-		<header className="header"><h1 className="brand">TRENDY JEWELLERY</h1><div className="actions">{userName ? <span style={{ color: '#b38728', fontWeight: 'bold', marginRight: '10px' }}>Hi, {userName}</span> : <button className="outline" onClick={() => setShowLogin(true)}>LOGIN</button>}<button className="dark" onClick={() => count && setCheckout(true)}>CART ({count})</button></div></header>
-		{showLogin && <div className="modal"><div><button style={{ position: "absolute", right: 10, top: 8, border: 0, background: "none", fontSize: 22 }} onClick={() => setShowLogin(false)}>×</button><h2>Welcome to Trendy</h2><input className="field" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} /><input className="field" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} /><button className="gold" style={{ width: "100%" }} onClick={handleLogin}>Send Secure OTP</button></div></div>}
-		<div className="content">{!checkout ? <><section style={{ textAlign: "center", marginBottom: 40 }}><h2>Elegance, <span style={{ color: "#b38728" }}>Redefined.</span></h2></section><section className="products">{products.map(p => <article className="card" key={p.id}><img src={p.image} alt={p.name} /><h3>{p.name}</h3><div className="price">₹{p.price.toLocaleString("en-IN")}</div><div className="controls">{cart[p.id] ? <><button onClick={() => change(p.id, -1)}>−</button><b>{cart[p.id]}</b><button onClick={() => change(p.id, 1)}>+</button></> : <button className="outline" onClick={() => change(p.id, 1)}>Add to Cart</button>}<button className="gold" onClick={() => { change(p.id, 1); setCheckout(true); }}>Buy Now</button></div></article>)}</section></> : <section className="checkout"><button className="outline" onClick={() => setCheckout(false)}>← Back</button><h2>Checkout</h2>{products.filter(p => cart[p.id]).map(p => <p key={p.id}>{p.name} × {cart[p.id]} — ₹{(p.price * cart[p.id]).toLocaleString("en-IN")}</p>)}<h2>Total: ₹{total.toLocaleString("en-IN")}</h2><input className="field" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} /><input className="field" placeholder="Email" value={email} onChange={e => setEmail(e.target.value)} /><input className="field" placeholder="Mobile" value={phone} onChange={e => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} /><input className="field" placeholder="Full Address" value={address} onChange={e => setAddress(e.target.value)} /><input className="field" placeholder="Pincode" value={pincode} onChange={e => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} /><button className="gold" style={{ width: "100%" }} disabled={!name || !email || phone.length !== 10 || !address || pincode.length !== 6} onClick={handlePayment}>Securely Pay ₹{total.toLocaleString("en-IN")}</button></section>}</div>
+	return <main className="store"><style>{`*{box-sizing:border-box}body{margin:0;background:#fdfbf7;color:#111;font-family:Arial,sans-serif}.top{background:#111;color:#d4af37;padding:9px;text-align:center;font-size:12px;letter-spacing:2px}.header{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:20px 5%;background:#fffffff2;border-bottom:1px solid #eee}.brand{color:#b38728;letter-spacing:2px}.content{max-width:1250px;margin:auto;padding:45px 20px}.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:28px}.card,.panel{background:white;border:1px solid #eee;border-radius:12px;padding:16px}.card img{width:100%;height:280px;object-fit:cover;border-radius:8px}.card h3{height:42px;font-size:16px}.price{color:#b38728;font-size:21px;font-weight:bold}.btn{cursor:pointer;border:0;border-radius:6px;padding:12px 18px;font-weight:bold}.dark{background:#111;color:#fff}.outline{background:white;border:2px solid #111}.actions{display:flex;gap:8px}.qty{display:flex;justify-content:center;align-items:center;gap:18px;border:1px solid #ddd;border-radius:30px;padding:5px}.checkout{display:grid;grid-template-columns:1fr 1fr;gap:25px}.item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #eee}.item img{width:60px;height:60px;object-fit:cover;border-radius:6px}.field{width:100%;padding:14px;margin:7px 0;border:1px solid #ddd;border-radius:7px}.pay{width:100%;padding:16px;background:#ddd;border:0;border-radius:7px;font-weight:bold}.ready{background:#25a866;color:#fff;cursor:pointer}.modal{position:fixed;inset:0;background:#0008;display:grid;place-items:center;z-index:5}.modal .panel{width:min(380px,90%)}`}</style>
+		<div className="top">✨ FREE SHIPPING ON ORDERS ABOVE ₹799 ✨ SECURE CHECKOUT ✨</div>
+		<header className="header"><h1 className="brand" onClick={() => setCheckout(false)}>TRENDY JEWELLERY</h1><div>{user ? `Hi, ${user}` : <button className="btn outline" onClick={() => setShowLogin(true)}>LOGIN</button>} <button className="btn dark" onClick={() => count && setCheckout(true)}>🛒 CART ({count})</button></div></header>
+		<div className="content">{!checkout ? <><section style={{ textAlign: "center", marginBottom: 45 }}><h2>Elegance, <span style={{ color: "#b38728" }}>Redefined.</span></h2><p>Handcrafted premium jewellery for your special moments.</p></section><section className="products">{products.map(p => <article className="card" key={p.id}><img src={p.image} alt={p.name}/><h3>{p.name}</h3><div className="price">₹{p.price.toLocaleString("en-IN")}</div><div className="actions">{cart[p.id] ? <div className="qty"><button onClick={() => update(p.id, -1)}>−</button><b>{cart[p.id]}</b><button onClick={() => update(p.id, 1)}>+</button></div> : <button className="btn outline" onClick={() => update(p.id, 1)}>ADD TO CART</button>}<button className="btn dark" onClick={() => { update(p.id, 1); setCheckout(true); }}>BUY NOW</button></div></article>)}</section></> : <><button className="btn" onClick={() => setCheckout(false)}>← Back to Shopping</button><div className="checkout"><section className="panel"><h2>Your Cart</h2>{products.filter(p => cart[p.id]).map(p => <div className="item" key={p.id}><input type="checkbox" checked={!!selected[p.id]} onChange={() => setSelected(s => ({ ...s, [p.id]: !s[p.id] }))}/><img src={p.image} alt=""/><span style={{ flex: 1 }}>{p.name}<br/><b>₹{p.price}</b></span><div className="qty"><button onClick={() => update(p.id, -1)}>−</button>{cart[p.id]}<button onClick={() => update(p.id, 1)}>+</button></div></div>)}</section><section className="panel"><h2>🔒 Secure Checkout</h2>{(["name", "email", "phone", "address", "pincode"] as const).map(k => <input key={k} className="field" placeholder={k[0].toUpperCase() + k.slice(1)} value={form[k]} onChange={e => change(k, k === "phone" || k === "pincode" ? e.target.value.replace(/\D/g, "") : e.target.value)}/>)}<h2>Total: ₹{total.toLocaleString("en-IN")}</h2><button className={`pay ${valid ? "ready" : ""}`} disabled={!valid} onClick={() => alert("Payment integration ready")}>PAY SECURELY</button></section></div></>}</div>
+		{showLogin && <div className="modal"><div className="panel"><h2>Login</h2><input className="field" placeholder="Your name" onChange={e => setUser(e.target.value)}/><input className="field" placeholder="10-digit phone"/><button className="btn dark" onClick={() => setShowLogin(false)}>CONTINUE</button></div></div>}
 	</main>;
 }
