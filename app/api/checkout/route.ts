@@ -1,35 +1,39 @@
-import { NextResponse } from 'next/server';
-import Razorpay from 'razorpay';
-
-// This securely loads your keys from the hidden .env.local vault
-const razorpay = new Razorpay({
-	key_id: process.env.RAZORPAY_KEY_ID!,
-	key_secret: process.env.RAZORPAY_KEY_SECRET!,
-});
+import { NextResponse } from "next/server";
+import Razorpay from "razorpay";
 
 export async function POST(request: Request) {
 	try {
 		const body = await request.json();
+		const { amount } = body;
+
+		const key_id = process.env.RAZORPAY_KEY_ID || "";
+		const key_secret = process.env.RAZORPAY_KEY_SECRET || "";
+
+		if (!key_id || !key_secret) {
+			return NextResponse.json(
+				{ error: "Razorpay keys missing from environment" },
+				{ status: 400 },
+			);
+		}
+
+		const razorpay = new Razorpay({ key_id, key_secret });
 
 		const options = {
-			amount: body.amount,
-			currency: 'INR',
-			receipt: 'trndy_' + Math.floor(Math.random() * 100000),
+			amount: amount || 50000,
+			currency: "INR",
+			receipt: "rcpt_" + Math.random().toString(36).substring(7),
 		};
 
 		const order = await razorpay.orders.create(options);
 
 		return NextResponse.json({
 			orderId: order.id,
-			keyId: process.env.RAZORPAY_KEY_ID,
+			keyId: key_id,
 			amount: order.amount,
 			currency: order.currency,
 		});
 	} catch (error) {
-		console.error('Razorpay Backend Error:', error);
-		return NextResponse.json(
-			{ error: 'Failed to create secure order' },
-			{ status: 500 },
-		);
+		console.error("Checkout API Error:", error);
+		return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
 	}
 }

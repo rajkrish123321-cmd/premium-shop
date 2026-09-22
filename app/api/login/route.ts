@@ -1,13 +1,14 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
-const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://placeholder.supabase.co';
+const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder';
 const supabase = createClient(supabaseUrl, supabaseKey);
 
 export async function POST(request: Request) {
 	try {
-		const { phone, name, age, gender } = await request.json();
+		const body = await request.json();
+		const { phone, name, age, gender } = body;
 
 		if (!phone || !name) {
 			return NextResponse.json(
@@ -22,8 +23,8 @@ export async function POST(request: Request) {
 				{
 					phone,
 					full_name: name,
-					age: Number.parseInt(age, 10) || null,
-					gender,
+					age: parseInt(age, 10) || null,
+					gender: gender || 'Not Specified',
 				},
 				{ onConflict: 'phone' },
 			)
@@ -34,7 +35,7 @@ export async function POST(request: Request) {
 		return NextResponse.json({
 			success: true,
 			message: 'Account verified securely.',
-			user: data[0],
+			user: data?.[0] ?? null,
 		});
 	} catch (error) {
 		console.error('Database Error:', error);
