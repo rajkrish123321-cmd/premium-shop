@@ -20,6 +20,7 @@ const PRODUCTS = [
 ];
 
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
+const STOCK_LIMIT = 30;
 
 export default function StorePage() {
 	const router = useRouter();
@@ -35,12 +36,32 @@ export default function StorePage() {
 	const [otp, setOtp] = useState("");
 	const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
+	const [cartFeedback, setCartFeedback] = useState<{ id: number; message: string; key: number } | null>(null);
+
+	const showCartFeedback = (id: number, message: string) => {
+		setCartFeedback({ id, message, key: Date.now() });
+		window.setTimeout(() => setCartFeedback(null), 2200);
+	};
 
 	const updateQuantity = (id: number, delta: number) => setCart(prev => {
-		const updated = (prev[id] || 0) + delta;
+		const updated = Math.min(STOCK_LIMIT, (prev[id] || 0) + delta);
 		if (updated <= 0) { const copy = { ...prev }; delete copy[id]; return copy; }
 		return { ...prev, [id]: updated };
 	});
+	const addToCart = (id: number) => {
+		const currentQuantity = cart[id] || 0;
+		if (currentQuantity >= STOCK_LIMIT) {
+			showCartFeedback(id, "Stock limit reached");
+			return;
+		}
+		updateQuantity(id, 1);
+		showCartFeedback(id, "Added to cart");
+	};
+	const buyNow = (id: number) => {
+		setCart({ [id]: 1 });
+		showCartFeedback(id, "Ready in your cart");
+	};
+	const cartItemCount = Object.values(cart).reduce((totalCount, quantity) => totalCount + quantity, 0);
 	const subtotal = Object.entries(cart).reduce((acc, [id, qty]) => {
 		const product = PRODUCTS.find(p => p.id === Number(id));
 		return acc + (product ? product.price * qty : 0);
@@ -135,12 +156,14 @@ export default function StorePage() {
 				<input className="compact-input" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value)} />
 				{!otpSent ? <button className="button button-dark" onClick={handleSendOtp}>Get OTP</button> : <><input className="compact-input otp-input" placeholder="4-digit OTP" value={otp} onChange={e => setOtp(e.target.value)} /><button className="button button-gold" onClick={handleVerifyOtp}>Verify</button></>}
 			</div>}
+			<div className="cart-badge" aria-label={`${cartItemCount} items in cart`}><span aria-hidden="true">🛍</span> Cart <b>{cartItemCount}</b></div>
 		</header>
 		<section className="hero-section" style={{ textAlign: "center", padding: "60px 20px", background: "linear-gradient(135deg,#111,#2c2c2c)", color: "#fdfbf7" }}><p className="hero-kicker">EVERYDAY TREASURES, BEAUTIFULLY MADE</p><h2>Jewellery that feels like you</h2><p style={{ color: "#d4af37" }}>Discover authentic handcrafted styles, thoughtfully priced with savings up to 40%.</p></section>
 		<main style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", display: "grid", gridTemplateColumns: "2fr 1fr", gap: 40 }}>
-			<div className="catalog-column"><div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 24 }}>{PRODUCTS.map(product => <div key={product.id} className="luxury-card product-card" style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><img src={product.image} alt={product.name} style={{ width: "100%", height: 180, objectFit: "cover" }} /><h3>{product.name}</h3><p>{product.desc}</p><strong style={{ color: "#b38728" }}>₹{product.price.toLocaleString("en-IN")}</strong><div className="product-actions"><button className="quantity-button" onClick={() => updateQuantity(product.id, -1)}>-</button> <span>{cart[product.id] || 0}</span> <button className="quantity-button" onClick={() => updateQuantity(product.id, 1)}>+</button><button className="button button-gold buy-button" onClick={() => setCart({ [product.id]: 1 })}>Buy Now ⚡</button></div>{product.id === 6 && <div className="price-alert"><span className="zigzag-line" aria-hidden="true" /><strong>Price-watch pick</strong><span>Beautiful everyday style at just ₹{product.price.toLocaleString("en-IN")}</span></div>}</div>)}</div><section className="suggestions-section"><div className="section-heading"><div><p className="section-kicker">STYLE EDIT</p><h2>More pieces to love</h2></div><span>Curated for you</span></div><div className="suggestion-grid">{SUGGESTED_PRODUCT_IDS.map(id => { const product = PRODUCTS.find(item => item.id === id)!; return <button className="suggestion-card" key={product.id} onClick={() => setCart({ [product.id]: 1 })}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>₹{product.price.toLocaleString("en-IN")}</small></span><b aria-hidden="true">+</b></button>; })}</div></section></div>
+			<div className="catalog-column"><div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 24 }}>{PRODUCTS.map(product => { const quantity = cart[product.id] || 0; return <div key={product.id} className="luxury-card product-card" style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><img src={product.image} alt={product.name} style={{ width: "100%", height: 180, objectFit: "cover" }} /><h3>{product.name}</h3><p>{product.desc}</p><strong style={{ color: "#b38728" }}>₹{product.price.toLocaleString("en-IN")}</strong><p className="stock-note">{STOCK_LIMIT - quantity} available</p><div className="product-actions"><button className="quantity-button" onClick={() => updateQuantity(product.id, -1)}>-</button> <span>{quantity}</span> <button className="quantity-button" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>+</button><button className="button button-dark" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>Add to cart</button><button className="button button-gold buy-button" onClick={() => buyNow(product.id)}>Buy Now ⚡</button></div>{product.id === 6 && <div className="price-alert"><span className="zigzag-line" aria-hidden="true" /><strong>Price-watch pick</strong><span>Beautiful everyday style at just ₹{product.price.toLocaleString("en-IN")}</span></div>}</div>; })}</div><section className="suggestions-section"><div className="section-heading"><div><p className="section-kicker">STYLE EDIT</p><h2>More pieces to love</h2></div><span>Curated for you</span></div><div className="suggestion-grid">{SUGGESTED_PRODUCT_IDS.map(id => { const product = PRODUCTS.find(item => item.id === id)!; return <button className="suggestion-card" key={product.id} onClick={() => addToCart(product.id)}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>₹{product.price.toLocaleString("en-IN")}</small></span><b aria-hidden="true">+</b></button>; })}</div></section></div>
 			<aside className="checkout-panel" style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 30, height: "fit-content" }}><h3>Secure Checkout & Shipping</h3><input className="form-input" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required /><input className="form-input" type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} /><input className="form-input" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value)} required /><input className="form-input" placeholder="Alternate Mobile Number (Optional)" value={altPhone} onChange={e => setAltPhone(e.target.value)} /><textarea className="form-input address-input" placeholder="Detailed Shipping Address" value={address} onChange={e => setAddress(e.target.value)} required /><input className="form-input" placeholder="6-digit Pincode" value={pincode} onChange={e => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} required /><input className="form-input" placeholder="Nearby Landmark (Optional)" value={landmark} onChange={e => setLandmark(e.target.value)} /><h4>Order Summary</h4>{Object.entries(cart).map(([id, qty]) => <p key={id}>{PRODUCTS.find(p => p.id === Number(id))?.name} (x{qty})</p>)}<hr /><p>Subtotal: ₹{subtotal.toLocaleString("en-IN")}</p><p>Estimated IGST (3%): ₹{igst.toLocaleString("en-IN")}</p><strong>Total Amount: ₹{total.toLocaleString("en-IN")}</strong><br /><div className="gemini-strip"><button className="checkout-button" onClick={handleCheckout} disabled={loading}>{loading ? "Opening Secure Payment..." : "Pay Securely via Razorpay"}</button></div></aside>
 		</main>
 		<a href="https://wa.me/919279566257" target="_blank" rel="noopener noreferrer" style={{ position: "fixed", bottom: 30, right: 30, fontSize: 30 }}>💬</a>
+		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key}><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" /><span>{cartFeedback.message}</span><b>🛍</b></div>}
 	</div>;
 }
