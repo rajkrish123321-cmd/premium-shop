@@ -31,6 +31,19 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 
 ## Deploy on Vercel
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+1. Import `https://github.com/rajkrish123321-cmd/premium-shop` at [vercel.com/new](https://vercel.com/new).
+2. Keep the framework preset as **Next.js** and use the default build settings.
+3. Add these Environment Variables in Vercel for **Production**, **Preview**, and **Development** as needed:
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+```text
+RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET
+NEXT_PUBLIC_SUPABASE_URL
+NEXT_PUBLIC_SUPABASE_ANON_KEY
+RESEND_API_KEY
+```
+
+4. Deploy the project.
+5. In Vercel, open **Settings -> Domains**, add `trendyjewellery.in` and `www.trendyjewellery.in`, then copy the DNS records Vercel provides into your domain registrar.
+
+The site metadata is configured for `https://trendyjewellery.in`. Keep `.env.local` local and never commit it; production secrets belong in Vercel Environment Variables.

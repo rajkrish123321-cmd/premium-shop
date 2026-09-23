@@ -1,41 +1,146 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import { useMemo, useState } from "react";
+import React, { useState } from "react";
+import { useRouter } from "next/navigation";
 
-type Product = { id: string; name: string; price: number; image: string };
+declare global {
+	interface Window {
+		Razorpay: new (options: Record<string, unknown>) => { open: () => void };
+	}
+}
 
-const products: Product[] = [
-  { id: "prod_1", name: "Oxidised Navratri Damini Maangtikka", price: 599, image: "/item1.jpg" },
-  { id: "prod_2", name: "18k Gold Plated Kundan Waist Chain", price: 426, image: "/item2.jpg" },
-  { id: "prod_3", name: "Austrian Stone Pearl Necklace Set", price: 1176, image: "/item3.jpg" },
-  { id: "prod_4", name: "Oxidised Pota Stone Pearl Jhumki", price: 305, image: "/item4.jpg" },
-  { id: "prod_5", name: "Oxidised Plated Dangler Earrings", price: 77, image: "/item5.jpg" },
-  { id: "prod_6", name: "Oxidised Plated Dangler Earrings Small", price: 52, image: "/item6.jpg" },
+const PRODUCTS = [
+	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", price: Math.round(428 * 1.4), image: "/item1.jpg", desc: "Stunning Navratri Oxidised Plated Masterpiece" },
+	{ id: 2, name: "Etnico 18k Kundan Kamarband", price: Math.round(304 * 1.4), image: "/item2.jpg", desc: "Stone Studded Waist Belly Chain for Women" },
+	{ id: 3, name: "Palak Art Austrian Stone Necklace", price: Math.round(840 * 1.4), image: "/item3.jpg", desc: "Heritage Pearl and Beads Festive Set" },
+	{ id: 4, name: "Maharani Oxidised Stone Jhumki", price: Math.round(218 * 1.4), image: "/item4.jpg", desc: "Pota Stone & Pearl Drop Earrings" },
+	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", price: Math.round(55 * 1.4), image: "/item5.jpg", desc: "Classic Oxidised Plated Dangler Earrings" },
+	{ id: 6, name: "Darshana Oxidised Dangler (Type B)", price: Math.round(37 * 1.4), image: "/item6.jpg", desc: "Lightweight Daily Wear Designer Earrings" },
 ];
 
-export default function TrendyJewelleryStore() {
-  const [cart, setCart] = useState<Record<string, number>>({});
-  const [checkout, setCheckout] = useState(false);
-  const [selected, setSelected] = useState<Record<string, boolean>>({});
-  const [details, setDetails] = useState({ name: "", email: "", phone: "", address: "", pincode: "" });
-  const count = Object.values(cart).reduce((a, b) => a + b, 0);
-  const total = useMemo(() => products.reduce((sum, p) => sum + p.price * (selected[p.id] ? cart[p.id] || 0 : 0), 0), [cart, selected]);
+const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
 
-  const change = (id: string, delta: number) => setCart(old => {
-    const quantity = Math.max(0, (old[id] || 0) + delta);
-    const next = { ...old };
-    if (quantity) next[id] = quantity; else delete next[id];
-    if (quantity && !old[id]) setSelected(s => ({ ...s, [id]: true }));
-    return next;
-  });
-  const update = (key: keyof typeof details, value: string) => setDetails(d => ({ ...d, [key]: value }));
-  const valid = details.name.length > 2 && details.email.includes("@") && details.phone.length === 10 && details.address.length > 5 && details.pincode.length === 6 && total > 0;
+export default function StorePage() {
+	const router = useRouter();
+	const [cart, setCart] = useState<{ [id: number]: number }>({});
+	const [phone, setPhone] = useState("");
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState("");
+	const [altPhone, setAltPhone] = useState("");
+	const [address, setAddress] = useState("");
+	const [landmark, setLandmark] = useState("");
+	const [pincode, setPincode] = useState("");
+	const [otpSent, setOtpSent] = useState(false);
+	const [otp, setOtp] = useState("");
+	const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
+	const [loading, setLoading] = useState(false);
 
-  return <main className="store">
-    <style>{`*{box-sizing:border-box}body{margin:0;background:#fdfbf7;color:#111;font-family:Segoe UI,Arial,sans-serif}.top{background:#111;color:#d4af37;text-align:center;padding:11px;font-weight:700;letter-spacing:1px}.header{position:sticky;top:0;z-index:2;display:flex;justify-content:space-between;align-items:center;padding:20px 5%;background:#fffffff2;border-bottom:1px solid #eee}.brand{color:#b38728;letter-spacing:2px}.btn{padding:12px 20px;border:0;border-radius:6px;cursor:pointer;font-weight:700}.dark{background:#111;color:#fff}.gold{background:#b38728;color:#fff}.content{max-width:1250px;margin:auto;padding:45px 20px}.hero{text-align:center;margin-bottom:45px}.hero h2{font-size:36px}.hero span,.price{color:#b38728}.products{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:30px}.card,.panel{background:#fff;border:1px solid #eee;border-radius:16px;padding:18px;box-shadow:0 10px 30px #00000008}.card{transition:.3s}.card:hover{transform:translateY(-8px);box-shadow:0 20px 40px #b3872833}.card img{width:100%;height:300px;object-fit:cover;border-radius:10px}.card h3{height:42px;text-align:center;font-size:16px}.price{text-align:center;font-size:22px;font-weight:900;margin:15px}.actions{display:flex;gap:10px}.actions>*{flex:1}.checkout{max-width:900px;margin:auto;display:grid;grid-template-columns:1fr 1fr;gap:25px}.item{display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid #eee}.item img{width:55px;height:55px;object-fit:cover;border-radius:7px}.item main{flex:1}.qty{display:flex;align-items:center;gap:12px}.qty button{border:0;background:#eee;border-radius:50%;width:28px;height:28px;cursor:pointer}.field{width:100%;padding:14px;margin-bottom:14px;border:1px solid #ddd;border-radius:7px;font-size:15px}.pay{width:100%;padding:16px;border:0;border-radius:8px;font-weight:800;background:#ddd;color:#888}.pay.ready{background:#25a866;color:#fff;cursor:pointer}.back{margin-bottom:20px}@media(max-width:700px){.checkout{grid-template-columns:1fr}.header{padding:15px}.brand{font-size:18px}.hero h2{font-size:28px}}`}</style>
-    <div className="top">✨ FREE SHIPPING ON ORDERS ABOVE ₹799 ✨ TRUSTED ALL INDIA DELIVERY ✨ 100% SECURE CHECKOUT ✨</div>
-    <header className="header"><h1 className="brand" onClick={() => setCheckout(false)}>TRENDY JEWELLERY</h1><button className="btn dark" onClick={() => count && setCheckout(true)}>🛒 CART ({count})</button></header>
-    <div className="content">{!checkout ? <><section className="hero"><h2>Elegance, <span>Redefined.</span></h2><p>Handcrafted premium jewellery for your special moments.</p></section><section className="products">{products.map(p => <article className="card" key={p.id}><img src={p.image} alt={p.name}/><h3>{p.name}</h3><div className="price">₹{p.price.toLocaleString("en-IN")}</div><div className="actions">{cart[p.id] ? <div className="qty"><button onClick={() => change(p.id,-1)}>−</button><b>{cart[p.id]}</b><button onClick={() => change(p.id,1)}>+</button></div> : <button className="btn" onClick={() => change(p.id,1)}>Add to Cart</button>}<button className="btn gold" onClick={() => { change(p.id,1); setCheckout(true); }}>Buy Now</button></div></article>)}</section></> : <><button className="btn back" onClick={() => setCheckout(false)}>← Back to Shopping</button><div className="checkout"><section className="panel"><h2>Your Cart</h2>{products.filter(p => cart[p.id]).map(p => <div className="item" key={p.id}><input type="checkbox" checked={!!selected[p.id]} onChange={() => setSelected(s => ({...s,[p.id]:!s[p.id]}))}/><img src={p.image} alt=""/><main><b>{p.name}</b><div className="price">₹{p.price}</div></main><div className="qty"><button onClick={() => change(p.id,-1)}>−</button>{cart[p.id]}<button onClick={() => change(p.id,1)}>+</button></div></div>)}</section><section className="panel"><h2>🔒 Secure Checkout</h2>{([['name','Full Name'],['email','Email Address'],['phone','Mobile Number'],['address','Shipping Address'],['pincode','Pincode']] as const).map(([key,placeholder]) => <input key={key} className="field" placeholder={placeholder} value={details[key]} onChange={e => update(key,key === 'phone' || key === 'pincode' ? e.target.value.replace(/\D/g,'') : e.target.value)}/>)}<h2>Total: <span className="price">₹{total.toLocaleString('en-IN')}</span></h2><button className={`pay ${valid ? 'ready' : ''}`} disabled={!valid} onClick={() => alert('Payment integration is ready to connect.')}>PAY SECURELY</button></section></div></>}</div>
-  </main>;
+	const updateQuantity = (id: number, delta: number) => setCart(prev => {
+		const updated = (prev[id] || 0) + delta;
+		if (updated <= 0) { const copy = { ...prev }; delete copy[id]; return copy; }
+		return { ...prev, [id]: updated };
+	});
+	const subtotal = Object.entries(cart).reduce((acc, [id, qty]) => {
+		const product = PRODUCTS.find(p => p.id === Number(id));
+		return acc + (product ? product.price * qty : 0);
+	}, 0);
+	const igst = Math.round(subtotal * 0.03);
+	const total = subtotal + igst;
+	const handleSendOtp = () => {
+		if (!phone || phone.length < 10) return alert("Please enter a valid 10-digit mobile number");
+		setOtpSent(true); alert("OTP sent to +91 " + phone + " (Simulated: Enter any 4 digits to log in)");
+	};
+	const handleVerifyOtp = () => {
+		if (otp.length < 4) return alert("Please enter any 4-digit OTP code");
+		setLoggedInUser(name || "Valued Patron"); alert("Successfully Logged In!");
+	};
+	const handleCheckout = async () => {
+		if (!Object.keys(cart).length) return alert("Your cart is empty. Please add at least one piece of jewelry.");
+		if (!name.trim()) return alert("Please provide your full name in the shipping details.");
+		if (!phone || phone.length < 10) return alert("Please provide a valid mobile number in the top-right section.");
+		if (!address || address.length < 5) return alert("Please provide a valid shipping address.");
+		if (!/^\d{6}$/.test(pincode)) return alert("Please provide a valid 6-digit pincode.");
+		setLoading(true);
+		try {
+			const script = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]') || document.createElement("script");
+			if (!script.src) {
+				script.src = "https://checkout.razorpay.com/v1/checkout.js";
+				script.async = true;
+				document.body.appendChild(script);
+			}
+			await new Promise<void>((resolve, reject) => {
+				if (window.Razorpay) return resolve();
+				script.onload = () => resolve();
+				script.onerror = () => reject(new Error("Razorpay could not be loaded"));
+			});
+
+			const orderResponse = await fetch("/api/checkout", {
+				method: "POST",
+				headers: { "Content-Type": "application/json" },
+				body: JSON.stringify({ amount: total * 100 }),
+			});
+			const order = await orderResponse.json();
+			if (!orderResponse.ok) throw new Error(order.error || "Could not create payment order");
+
+			const razorpay = new window.Razorpay({
+				key: order.keyId,
+				amount: order.amount,
+				currency: order.currency,
+				name: "Trendy Jewellery",
+				description: "Premium jewellery order",
+				order_id: order.orderId,
+				prefill: { name, email, contact: phone },
+				theme: { color: "#b38728" },
+				handler: async (payment: Record<string, string>) => {
+					try {
+						const verifyResponse = await fetch("/api/verify", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								razorpay_order_id: payment.razorpay_order_id,
+								razorpay_payment_id: payment.razorpay_payment_id,
+								razorpay_signature: payment.razorpay_signature,
+							}),
+						});
+						if (!verifyResponse.ok) throw new Error("Payment verification failed");
+						const shippingResponse = await fetch("/api/ship", {
+							method: "POST",
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({ orderId: payment.razorpay_order_id, name, email, phone, address: `${address}${landmark ? `, ${landmark}` : ""}`, pincode, cart }),
+						});
+						const shipping = await shippingResponse.json();
+						if (!shippingResponse.ok) throw new Error(shipping.error || "Shipping details could not be saved");
+						router.push(`/success?order_id=${shipping.order_id}`);
+					} catch (error) {
+						setLoading(false);
+						alert(error instanceof Error ? error.message : "Payment completed, but order confirmation failed.");
+					}
+				},
+			});
+			setLoading(false);
+			razorpay.open();
+		} catch (error) {
+			setLoading(false);
+			alert(error instanceof Error ? error.message : "Unable to start payment.");
+		}
+	};
+
+	return <div style={{ minHeight: "100vh", background: "#fdfbf7", color: "#111", fontFamily: "Georgia, serif", paddingBottom: 100 }}>
+		<div className="trust-bar">ALL INDIA DELIVERY <span>•</span> TRUSTED AUTHENTIC BRAND <span>•</span> SECURE PAYMENTS</div>
+		<header className="site-header" style={{ borderBottom: "1px solid #e6dcc3", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" }}>
+			<h1 className="brand-title" style={{ fontSize: 26, letterSpacing: 2, color: "#b38728", margin: 0 }}>TRENDY JEWELLERY</h1>
+			{loggedInUser ? <span style={{ color: "#b38728" }}>Welcome, {loggedInUser} ✨</span> : <div style={{ display: "flex", gap: 8 }}>
+				<input className="compact-input" placeholder="Your Name" value={name} onChange={e => setName(e.target.value)} />
+				<input className="compact-input" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value)} />
+				{!otpSent ? <button className="button button-dark" onClick={handleSendOtp}>Get OTP</button> : <><input className="compact-input otp-input" placeholder="4-digit OTP" value={otp} onChange={e => setOtp(e.target.value)} /><button className="button button-gold" onClick={handleVerifyOtp}>Verify</button></>}
+			</div>}
+		</header>
+		<section className="hero-section" style={{ textAlign: "center", padding: "60px 20px", background: "linear-gradient(135deg,#111,#2c2c2c)", color: "#fdfbf7" }}><p className="hero-kicker">EVERYDAY TREASURES, BEAUTIFULLY MADE</p><h2>Jewellery that feels like you</h2><p style={{ color: "#d4af37" }}>Discover authentic handcrafted styles, thoughtfully priced with savings up to 40%.</p></section>
+		<main style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", display: "grid", gridTemplateColumns: "2fr 1fr", gap: 40 }}>
+			<div className="catalog-column"><div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 24 }}>{PRODUCTS.map(product => <div key={product.id} className="luxury-card product-card" style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><img src={product.image} alt={product.name} style={{ width: "100%", height: 180, objectFit: "cover" }} /><h3>{product.name}</h3><p>{product.desc}</p><strong style={{ color: "#b38728" }}>₹{product.price.toLocaleString("en-IN")}</strong><div className="product-actions"><button className="quantity-button" onClick={() => updateQuantity(product.id, -1)}>-</button> <span>{cart[product.id] || 0}</span> <button className="quantity-button" onClick={() => updateQuantity(product.id, 1)}>+</button><button className="button button-gold buy-button" onClick={() => setCart({ [product.id]: 1 })}>Buy Now ⚡</button></div>{product.id === 6 && <div className="price-alert"><span className="zigzag-line" aria-hidden="true" /><strong>Price-watch pick</strong><span>Beautiful everyday style at just ₹{product.price.toLocaleString("en-IN")}</span></div>}</div>)}</div><section className="suggestions-section"><div className="section-heading"><div><p className="section-kicker">STYLE EDIT</p><h2>More pieces to love</h2></div><span>Curated for you</span></div><div className="suggestion-grid">{SUGGESTED_PRODUCT_IDS.map(id => { const product = PRODUCTS.find(item => item.id === id)!; return <button className="suggestion-card" key={product.id} onClick={() => setCart({ [product.id]: 1 })}><img src={product.image} alt="" /><span><strong>{product.name}</strong><small>₹{product.price.toLocaleString("en-IN")}</small></span><b aria-hidden="true">+</b></button>; })}</div></section></div>
+			<aside className="checkout-panel" style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 30, height: "fit-content" }}><h3>Secure Checkout & Shipping</h3><input className="form-input" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required /><input className="form-input" type="email" placeholder="Email Address" value={email} onChange={e => setEmail(e.target.value)} /><input className="form-input" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value)} required /><input className="form-input" placeholder="Alternate Mobile Number (Optional)" value={altPhone} onChange={e => setAltPhone(e.target.value)} /><textarea className="form-input address-input" placeholder="Detailed Shipping Address" value={address} onChange={e => setAddress(e.target.value)} required /><input className="form-input" placeholder="6-digit Pincode" value={pincode} onChange={e => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} required /><input className="form-input" placeholder="Nearby Landmark (Optional)" value={landmark} onChange={e => setLandmark(e.target.value)} /><h4>Order Summary</h4>{Object.entries(cart).map(([id, qty]) => <p key={id}>{PRODUCTS.find(p => p.id === Number(id))?.name} (x{qty})</p>)}<hr /><p>Subtotal: ₹{subtotal.toLocaleString("en-IN")}</p><p>Estimated IGST (3%): ₹{igst.toLocaleString("en-IN")}</p><strong>Total Amount: ₹{total.toLocaleString("en-IN")}</strong><br /><div className="gemini-strip"><button className="checkout-button" onClick={handleCheckout} disabled={loading}>{loading ? "Opening Secure Payment..." : "Pay Securely via Razorpay"}</button></div></aside>
+		</main>
+		<a href="https://wa.me/919279566257" target="_blank" rel="noopener noreferrer" style={{ position: "fixed", bottom: 30, right: 30, fontSize: 30 }}>💬</a>
+	</div>;
 }
