@@ -1,9 +1,10 @@
 "use client";
 
+import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
-export default function SuccessPage() {
+function SuccessContent() {
 	const searchParams = useSearchParams();
 	const orderId = searchParams.get("order_id") || "Pending";
 
@@ -22,5 +23,13 @@ export default function SuccessPage() {
 				<Link className="success-button" href="/">Continue shopping</Link>
 			</section>
 		</main>
+	);
+}
+
+export default function SuccessPage() {
+	return (
+		<Suspense fallback={<main className="success-page"><section className="success-card"><p className="success-eyebrow">Confirming your order</p><h1>Please wait...</h1></section></main>}>
+			<SuccessContent />
+		</Suspense>
 	);
 }
