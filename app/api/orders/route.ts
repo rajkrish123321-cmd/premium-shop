@@ -1,33 +1,27 @@
 import { NextResponse } from "next/server";
-import { createClient } from "@supabase/supabase-js";
-import { supabasePublishableKey, supabaseUrl } from "../../../lib/supabase-config";
 
-const getSupabase = (accessToken: string) => createClient(
-	supabaseUrl,
-	supabasePublishableKey,
-	{ global: { headers: { Authorization: `Bearer ${accessToken}` } } },
-);
+import { auth } from "@/auth";
+import { getOrdersForUser } from "@/lib/neon";
 
-export async function GET(request: Request) {
-	const authorization = request.headers.get("authorization");
-	const accessToken = authorization?.startsWith("Bearer ") ? authorization.slice(7) : "";
-	if (!accessToken) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+export async function GET() {
+  const session = await auth();
+  if (!session?.user?.id) {
+    return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  }
 
-	try {
-		const supabase = getSupabase(accessToken);
-		const { data: authData, error: authError } = await supabase.auth.getUser(accessToken);
-		if (authError || !authData.user) return NextResponse.json({ error: "Authentication required" }, { status: 401 });
+  try {
+    const orders = await getOrdersForUser(session.user.id);
 
-		const { data: orders, error } = await supabase
-			.from("orders")
-			.select("id, created_at, total_amount, status")
-			.eq("user_id", authData.user.id)
-			.order("created_at", { ascending: false });
-		if (error) throw error;
-
-		return NextResponse.json({ orders: orders || [] });
-	} catch (error) {
-		console.error("Order history error:", error);
-		return NextResponse.json({ error: "Unable to load order history" }, { status: 500 });
-	}
+    return NextResponse.json({
+      orders: orders.map((order) => ({
+        id: String(order.id),
+        createdAt: String(order.created_at),
+        totalAmount: Number(order.total_amount),
+        status: order.status,
+      })),
+    });
+  } catch (error) {
+    console.error("Order history error:", error);
+    return NextResponse.json({ error: "Unable to load order history" }, { status: 500 });
+  }
 }

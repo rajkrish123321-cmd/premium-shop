@@ -4,7 +4,7 @@
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { supabase } from "../lib/supabase-browser";
+import { useSession } from "next-auth/react";
 
 declare global {
 	interface Window {
@@ -26,6 +26,7 @@ const STOCK_LIMIT = 30;
 
 export default function StorePage() {
 	const router = useRouter();
+	const { data: session } = useSession();
 	const [cart, setCart] = useState<{ [id: number]: number }>({});
 	const [phone, setPhone] = useState("");
 	const [name, setName] = useState("");
@@ -128,15 +129,21 @@ export default function StorePage() {
 							}),
 						});
 						if (!verifyResponse.ok) throw new Error("Payment verification failed");
-						const { data: sessionData } = await supabase.auth.getSession();
-						const accessToken = sessionData.session?.access_token;
 						const shippingResponse = await fetch("/api/ship", {
 							method: "POST",
-							headers: {
-								"Content-Type": "application/json",
-								...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
-							},
-							body: JSON.stringify({ orderId: payment.razorpay_order_id, name, email, phone, address: `${address}${landmark ? `, ${landmark}` : ""}`, pincode, cart }),
+							headers: { "Content-Type": "application/json" },
+							body: JSON.stringify({
+								orderId: payment.razorpay_order_id,
+								paymentId: payment.razorpay_payment_id,
+								signature: payment.razorpay_signature,
+								name,
+								email,
+								phone,
+								address: `${address}${landmark ? `, ${landmark}` : ""}`,
+								pincode,
+								cart,
+								userId: session?.user?.id || null,
+							}),
 						});
 						const shipping = await shippingResponse.json();
 						if (!shippingResponse.ok) throw new Error(shipping.error || "Shipping details could not be saved");

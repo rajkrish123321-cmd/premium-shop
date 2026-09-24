@@ -38,12 +38,23 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 ```text
 RAZORPAY_KEY_ID
 RAZORPAY_KEY_SECRET
-NEXT_PUBLIC_SUPABASE_URL
-NEXT_PUBLIC_SUPABASE_ANON_KEY
-RESEND_API_KEY
+DATABASE_URL
+NEON_DATABASE_URL
 ```
 
-4. Deploy the project.
+4. Add these authentication and database variables too:
+
+```text
+NEXTAUTH_SECRET
+NEXTAUTH_URL
+ADMIN_EMAIL
+ADMIN_PASSWORD
+RESEND_API_KEY
+RESEND_FROM_EMAIL
+```
+
+Run `neon/schema.sql` in the Neon SQL editor before deploying. `DATABASE_URL` (or `NEON_DATABASE_URL`) is required for accounts and orders. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` enable password reset and order notification emails; email delivery is intentionally best-effort after a paid order is stored.
+
 5. In Vercel, open **Settings -> Domains**, add `trendyjewellery.in` and `www.trendyjewellery.in`, then copy the DNS records Vercel provides into your domain registrar.
 
 The site metadata is configured for `https://trendyjewellery.in`. Keep `.env.local` local and never commit it; production secrets belong in Vercel Environment Variables.
