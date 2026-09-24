@@ -2,8 +2,9 @@
 "use client";
 
 import React, { useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
+import { supabase } from "../lib/supabase-browser";
 
 declare global {
 	interface Window {
@@ -22,10 +23,6 @@ const PRODUCTS = [
 
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
 const STOCK_LIMIT = 30;
-const supabase = createClient(
-	process.env.NEXT_PUBLIC_SUPABASE_URL || "https://j36YzXcDP5xthE.supabase.co",
-	process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder",
-);
 
 export default function StorePage() {
 	const router = useRouter();
@@ -37,14 +34,11 @@ export default function StorePage() {
 	const [address, setAddress] = useState("");
 	const [landmark, setLandmark] = useState("");
 	const [pincode, setPincode] = useState("");
-	const [otpSent, setOtpSent] = useState(false);
-	const [otp, setOtp] = useState("");
-	const [loggedInUser, setLoggedInUser] = useState<string | null>(null);
 	const [loading, setLoading] = useState(false);
 	const [cartFeedback, setCartFeedback] = useState<{ id: number; message: string; key: number } | null>(null);
 
 	const showCartFeedback = (id: number, message: string) => {
-		setCartFeedback({ id, message, key: Date.now() });
+		setCartFeedback(previous => ({ id, message, key: (previous?.key || 0) + 1 }));
 		window.setTimeout(() => setCartFeedback(null), 2200);
 	};
 
@@ -85,14 +79,6 @@ export default function StorePage() {
 	}, 0);
 	const igst = Math.round(subtotal * 0.03);
 	const total = subtotal + igst;
-	const handleSendOtp = () => {
-		if (!phone || phone.length < 10) return alert("Please enter a valid 10-digit mobile number");
-		setOtpSent(true); alert("OTP sent to +91 " + phone + " (Simulated: Enter any 4 digits to log in)");
-	};
-	const handleVerifyOtp = () => {
-		if (otp.length < 4) return alert("Please enter any 4-digit OTP code");
-		setLoggedInUser(name || "Valued Patron"); alert("Successfully Logged In!");
-	};
 	const handleCheckout = async () => {
 		if (!Object.keys(cart).length) return alert("Your cart is empty. Please add at least one piece of jewelry.");
 		if (!name.trim()) return alert("Please provide your full name in the shipping details.");
@@ -173,11 +159,7 @@ export default function StorePage() {
 		<div className="trust-bar">ALL INDIA DELIVERY <span>•</span> TRUSTED AUTHENTIC BRAND <span>•</span> SECURE PAYMENTS</div>
 		<header className="site-header" style={{ borderBottom: "1px solid #e6dcc3", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" }}>
 			<h1 className="brand-title" style={{ fontSize: 26, letterSpacing: 2, color: "#b38728", margin: 0 }}>TRENDY JEWELLERY</h1>
-			{loggedInUser ? <span style={{ color: "#b38728" }}>Welcome, {loggedInUser} ✨</span> : <div style={{ display: "flex", gap: 8 }}>
-				<input className="compact-input" placeholder="Your Name" value={name} onChange={e => setName(e.target.value)} />
-				<input className="compact-input" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value)} />
-				{!otpSent ? <button className="button button-dark" onClick={handleSendOtp}>Get OTP</button> : <><input className="compact-input otp-input" placeholder="4-digit OTP" value={otp} onChange={e => setOtp(e.target.value)} /><button className="button button-gold" onClick={handleVerifyOtp}>Verify</button></>}
-				<a className="account-link" href="/login">Email account</a></div>}
+			<Link className="account-link" href="/login">Email account</Link>
 			<div className="cart-badge" aria-label={`${cartItemCount} items in cart`}><span aria-hidden="true">🛍</span> Cart <b>{cartItemCount}</b></div>
 		</header>
 		<section className="hero-section" style={{ textAlign: "center", padding: "60px 20px", background: "linear-gradient(135deg,#111,#2c2c2c)", color: "#fdfbf7" }}><p className="hero-kicker">EVERYDAY TREASURES, BEAUTIFULLY MADE</p><h2>Jewellery that feels like you</h2><p style={{ color: "#d4af37" }}>Discover authentic handcrafted styles, thoughtfully priced with savings up to 40%.</p></section>

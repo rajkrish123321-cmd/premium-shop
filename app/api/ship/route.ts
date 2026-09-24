@@ -1,13 +1,12 @@
 import { NextResponse } from 'next/server';
 import { Resend } from 'resend';
 import { createClient } from '@supabase/supabase-js';
+import { supabaseServiceRoleKey, supabaseUrl } from '../../../lib/supabase-config';
 
 // Safe lazy initialization to avoid build-time crashes
 const getResend = () => new Resend(process.env.RESEND_API_KEY || "re_placeholder");
 const getSupabase = () => {
-	const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://j36YzXcDP5xthE.supabase.co";
-	const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder";
-	return createClient(url, key);
+	return createClient(supabaseUrl, supabaseServiceRoleKey);
 };
 
 const PRODUCT_PRICES: Record<string, number> = {

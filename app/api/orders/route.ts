@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { supabasePublishableKey, supabaseUrl } from "../../../lib/supabase-config";
 
 const getSupabase = (accessToken: string) => createClient(
-	process.env.NEXT_PUBLIC_SUPABASE_URL || "https://j36YzXcDP5xthE.supabase.co",
-	process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder",
+	supabaseUrl,
+	supabasePublishableKey,
 	{ global: { headers: { Authorization: `Bearer ${accessToken}` } } },
 );
 

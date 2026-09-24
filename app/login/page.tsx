@@ -3,12 +3,7 @@
 import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { createClient } from "@supabase/supabase-js";
-
-const supabase = createClient(
-	process.env.NEXT_PUBLIC_SUPABASE_URL || "https://j36YzXcDP5xthE.supabase.co",
-	process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder",
-);
+import { supabase } from "../../lib/supabase-browser";
 
 export default function LoginPage() {
 	const router = useRouter();
