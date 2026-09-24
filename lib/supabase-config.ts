@@ -4,11 +4,15 @@ export const supabaseUrl = configuredUrl.startsWith("https://")
 	? configuredUrl
 	: "https://j36YzXcDP5xthE.supabase.co";
 
-export const supabasePublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY
-	|| (configuredUrl.startsWith("sb_publishable_") ? configuredUrl : "")
-	|| process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-	|| "sb_publishable_placeholder";
+const configuredPublishableKey = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || "";
+const configuredAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
+
+export const supabasePublishableKey = configuredPublishableKey.startsWith("sb_publishable_")
+	? configuredPublishableKey
+	: configuredAnonKey.startsWith("sb_publishable_")
+		? configuredAnonKey
+		: "sb_publishable_placeholder";
 
 export const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-	|| (process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY?.startsWith("sb_secret_") ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : "")
-	|| supabasePublishableKey;
+	|| (configuredAnonKey.startsWith("sb_secret_") ? configuredAnonKey : "")
+	|| "";

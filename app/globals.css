@@ -187,6 +187,21 @@
 .auth-card label input { display: block; margin-top: 6px; }
 .auth-card .checkout-button { margin-top: 8px; }
 .auth-card a { display: inline-block; margin-top: 18px; color: #6f5018; font: 700 12px Arial, sans-serif; }
+.password-field { position: relative; }
+.password-field .form-input { padding-right: 60px; }
+.password-toggle { position: absolute; top: 7px; right: 8px; border: 0; background: transparent; color: #6f5018; cursor: pointer; font: 700 11px Arial, sans-serif; }
+.password-guide { margin-top: 8px; color: #777; font: 11px/1.5 Arial, sans-serif; }
+.password-guide > strong { display: block; margin-bottom: 6px; color: #6f5018; text-transform: capitalize; }
+.password-meter { height: 4px; overflow: hidden; margin-bottom: 7px; background: #eee5d5; }
+.password-meter span { display: block; height: 100%; transform-origin: left; animation: passwordMeter 0.35s ease-out both; }
+.password-meter-weak span { width: 33%; background: #a33a2b; }
+.password-meter-normal span { width: 66%; background: #b38728; }
+.password-meter-strong span { width: 100%; background: #50703d; }
+.password-checks { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.password-checks span::before { content: "○ "; color: #aaa; }
+.password-checks .check-pass { color: #50703d; }
+.password-checks .check-pass::before { content: "✓ "; }
+@keyframes passwordMeter { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 .auth-link-button { margin-top: 16px; padding: 0; border: 0; background: transparent; color: #6f5018; cursor: pointer; font: 700 12px Arial, sans-serif; text-decoration: underline; }
 .auth-error, .auth-message { margin: 16px 0 0; font: 13px/1.5 Arial, sans-serif; }
 .auth-error { color: #a33a2b; }
@@ -216,6 +231,23 @@
 .dashboard-order-total strong { color: #111; font: 700 18px Arial, sans-serif; }
 .order-status { padding: 4px 10px; border-radius: 12px; background: #fff3cd; color: #856404; font: 700 11px Arial, sans-serif; text-transform: uppercase; }
 .order-status-complete { background: #d4edda; color: #155724; }
+.admin-page { min-height: 100vh; padding: 40px 24px 80px; background: radial-gradient(circle at top, #fffdf8 0, #f3ead8 100%); }
+.admin-shell { width: min(100%, 1000px); margin: 0 auto; }
+.admin-header { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding-bottom: 24px; border-bottom: 2px solid #f0e8da; }
+.admin-header h1 { margin: 0 0 6px; color: #b38728; font-size: 32px; }
+.admin-header p:not(.section-kicker) { margin: 0; color: #666; font: 14px Arial, sans-serif; }
+.admin-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 24px 0; }
+.admin-stats > div, .admin-panel { border: 1px solid #e6dcc3; background: #fff; box-shadow: 0 12px 30px rgba(74, 52, 18, 0.06); }
+.admin-stats > div { padding: 18px; }
+.admin-stats strong, .admin-stats span { display: block; }
+.admin-stats strong { color: #111; font: 700 24px Arial, sans-serif; }
+.admin-stats span { margin-top: 4px; color: #777; font: 11px Arial, sans-serif; text-transform: uppercase; }
+.admin-panel { margin-top: 18px; padding: 20px; }
+.admin-panel h2 { margin: 0 0 16px; color: #333; font-size: 20px; }
+.admin-table { display: grid; }
+.admin-table-row { display: grid; grid-template-columns: 1.5fr 1fr 1fr; gap: 12px; align-items: center; padding: 12px 0; border-top: 1px solid #eee5d5; color: #555; font: 13px Arial, sans-serif; }
+.admin-table-head { border-top: 0; padding-top: 0; color: #6f5018; font-weight: 700; text-transform: uppercase; }
+.admin-table-row small { display: block; margin-top: 4px; color: #999; font-size: 11px; }
 .checkout-panel > h3 { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
 .cart-panel-count { color: #b38728; font: 700 11px Arial, sans-serif; letter-spacing: 0.5px; white-space: nowrap; }
 .cart-items { display: grid; gap: 12px; margin: 18px 0; }
@@ -341,4 +373,8 @@ body {
 	.dashboard-header, .dashboard-heading, .dashboard-order { align-items: flex-start; flex-direction: column; }
 	.dashboard-logout { align-self: stretch; }
 	.dashboard-order-total { justify-items: start; }
+	.admin-page { padding: 24px 16px 60px; }
+	.admin-header { align-items: flex-start; flex-direction: column; }
+	.admin-stats { grid-template-columns: 1fr; }
+	.admin-table-row { grid-template-columns: 1fr; gap: 4px; }
 }
