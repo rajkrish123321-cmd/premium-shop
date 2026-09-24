@@ -6,7 +6,7 @@ import { createClient } from '@supabase/supabase-js';
 const getResend = () => new Resend(process.env.RESEND_API_KEY || "re_placeholder");
 const getSupabase = () => {
 	const url = process.env.NEXT_PUBLIC_SUPABASE_URL || "https://j36YzXcDP5xthE.supabase.co";
-	const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder";
+	const key = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder";
 	return createClient(url, key);
 };
 
@@ -32,6 +32,13 @@ export async function POST(request: Request) {
 		const finalAmount = Math.round(cartTotal + igst);
 
 		const supabase = getSupabase();
+		const authorization = request.headers.get("authorization");
+		const accessToken = authorization?.startsWith("Bearer ") ? authorization.slice(7) : "";
+		let userId: string | null = null;
+		if (accessToken) {
+			const { data: authData } = await supabase.auth.getUser(accessToken);
+			userId = authData.user?.id || null;
+		}
 		const { error: dbError } = await supabase
 			.from('orders')
 			.insert([{
@@ -43,6 +50,7 @@ export async function POST(request: Request) {
 				pincode: pincode,
 				cart_items: cart,
 				total_amount: finalAmount,
+				...(userId ? { user_id: userId } : {}),
 			}]);
 
 		if (dbError) console.error("Supabase Save Error:", dbError);

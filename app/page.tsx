@@ -3,6 +3,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@supabase/supabase-js";
 
 declare global {
 	interface Window {
@@ -21,6 +22,10 @@ const PRODUCTS = [
 
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
 const STOCK_LIMIT = 30;
+const supabase = createClient(
+	process.env.NEXT_PUBLIC_SUPABASE_URL || "https://j36YzXcDP5xthE.supabase.co",
+	process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "sb_publishable_placeholder",
+);
 
 export default function StorePage() {
 	const router = useRouter();
@@ -137,9 +142,14 @@ export default function StorePage() {
 							}),
 						});
 						if (!verifyResponse.ok) throw new Error("Payment verification failed");
+						const { data: sessionData } = await supabase.auth.getSession();
+						const accessToken = sessionData.session?.access_token;
 						const shippingResponse = await fetch("/api/ship", {
 							method: "POST",
-							headers: { "Content-Type": "application/json" },
+							headers: {
+								"Content-Type": "application/json",
+								...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+							},
 							body: JSON.stringify({ orderId: payment.razorpay_order_id, name, email, phone, address: `${address}${landmark ? `, ${landmark}` : ""}`, pincode, cart }),
 						});
 						const shipping = await shippingResponse.json();
@@ -167,7 +177,7 @@ export default function StorePage() {
 				<input className="compact-input" placeholder="Your Name" value={name} onChange={e => setName(e.target.value)} />
 				<input className="compact-input" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value)} />
 				{!otpSent ? <button className="button button-dark" onClick={handleSendOtp}>Get OTP</button> : <><input className="compact-input otp-input" placeholder="4-digit OTP" value={otp} onChange={e => setOtp(e.target.value)} /><button className="button button-gold" onClick={handleVerifyOtp}>Verify</button></>}
-			</div>}
+				<a className="account-link" href="/login">Email account</a></div>}
 			<div className="cart-badge" aria-label={`${cartItemCount} items in cart`}><span aria-hidden="true">🛍</span> Cart <b>{cartItemCount}</b></div>
 		</header>
 		<section className="hero-section" style={{ textAlign: "center", padding: "60px 20px", background: "linear-gradient(135deg,#111,#2c2c2c)", color: "#fdfbf7" }}><p className="hero-kicker">EVERYDAY TREASURES, BEAUTIFULLY MADE</p><h2>Jewellery that feels like you</h2><p style={{ color: "#d4af37" }}>Discover authentic handcrafted styles, thoughtfully priced with savings up to 40%.</p></section>
