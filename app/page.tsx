@@ -37,6 +37,9 @@ export default function StorePage() {
 	const [pincode, setPincode] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [cartFeedback, setCartFeedback] = useState<{ id: number; message: string; key: number } | null>(null);
+	const [shippingPrompt, setShippingPrompt] = useState("");
+	const displayName = session?.user?.name?.trim() || session?.user?.email?.split("@")[0] || "Guest";
+	const initials = displayName.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
 
 	const showCartFeedback = (id: number, message: string) => {
 		setCartFeedback(previous => ({ id, message, key: (previous?.key || 0) + 1 }));
@@ -71,7 +74,10 @@ export default function StorePage() {
 		scrollToPayment();
 	};
 	const buyFullCart = () => {
-		if (!cartItemCount) return alert("Your cart is empty. Add an item before checkout.");
+		if (!cartItemCount) {
+			setShippingPrompt("Your cart is waiting for one beautiful piece before checkout.");
+			return;
+		}
 		scrollToPayment();
 	};
 	const subtotal = Object.entries(cart).reduce((acc, [id, qty]) => {
@@ -81,11 +87,14 @@ export default function StorePage() {
 	const igst = Math.round(subtotal * 0.03);
 	const total = subtotal + igst;
 	const handleCheckout = async () => {
-		if (!Object.keys(cart).length) return alert("Your cart is empty. Please add at least one piece of jewelry.");
-		if (!name.trim()) return alert("Please provide your full name in the shipping details.");
-		if (!phone || phone.length < 10) return alert("Please provide a valid mobile number in the top-right section.");
-		if (!address || address.length < 5) return alert("Please provide a valid shipping address.");
-		if (!/^\d{6}$/.test(pincode)) return alert("Please provide a valid 6-digit pincode.");
+		if (!Object.keys(cart).length) return setShippingPrompt("Add a piece to your cart before checkout.");
+		const missingField = !name.trim() ? "name" : !phone || phone.length < 10 ? "phone" : !address || address.length < 5 ? "address" : !/^\d{6}$/.test(pincode) ? "pincode" : "";
+		if (missingField) {
+			setShippingPrompt("A few required details are still needed. Let us finish your delivery details together.");
+			document.querySelector(".shipping-fields")?.scrollIntoView({ behavior: "smooth", block: "center" });
+			return;
+		}
+		setShippingPrompt("");
 		setLoading(true);
 		try {
 			const script = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]') || document.createElement("script");
@@ -150,7 +159,7 @@ export default function StorePage() {
 						router.push(`/success?order_id=${shipping.order_id}`);
 					} catch (error) {
 						setLoading(false);
-						alert(error instanceof Error ? error.message : "Payment completed, but order confirmation failed.");
+						setShippingPrompt(error instanceof Error ? error.message : "Payment completed, but order confirmation failed.");
 					}
 				},
 			});
@@ -158,7 +167,7 @@ export default function StorePage() {
 			razorpay.open();
 		} catch (error) {
 			setLoading(false);
-			alert(error instanceof Error ? error.message : "Unable to start payment.");
+			setShippingPrompt(error instanceof Error ? error.message : "Unable to start payment.");
 		}
 	};
 
@@ -166,7 +175,7 @@ export default function StorePage() {
 		<div className="trust-bar">ALL INDIA DELIVERY <span>•</span> TRUSTED AUTHENTIC BRAND <span>•</span> SECURE PAYMENTS</div>
 		<header className="site-header" style={{ borderBottom: "1px solid #e6dcc3", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" }}>
 			<h1 className="brand-title" style={{ fontSize: 26, letterSpacing: 2, color: "#b38728", margin: 0 }}>TRENDY JEWELLERY</h1>
-			<Link className="account-link" href="/login">Email account</Link>
+			<Link className="account-link" href={session ? "/dashboard" : "/login"}><span className="account-avatar">{session ? initials : "TJ"}</span><span><small>{session ? "Welcome back" : "Personal room"}</small><strong>{session ? displayName : "Log in / Sign up"}</strong></span></Link>
 			<div className="cart-badge" aria-label={`${cartItemCount} items in cart`}><span aria-hidden="true">🛍</span> Cart <b>{cartItemCount}</b></div>
 		</header>
 		<section className="hero-section" style={{ textAlign: "center", padding: "60px 20px", background: "linear-gradient(135deg,#111,#2c2c2c)", color: "#fdfbf7" }}><p className="hero-kicker">EVERYDAY TREASURES, BEAUTIFULLY MADE</p><h2>Jewellery that feels like you</h2><p style={{ color: "#d4af37" }}>Discover authentic handcrafted styles, thoughtfully priced with savings up to 40%.</p></section>
@@ -176,5 +185,6 @@ export default function StorePage() {
 		</main>
 		<a href="https://wa.me/919279566257" target="_blank" rel="noopener noreferrer" style={{ position: "fixed", bottom: 30, right: 30, fontSize: 30 }}>💬</a>
 		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key}><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" /><span>{cartFeedback.message}</span><b>🛍</b></div>}
+		{shippingPrompt && <div className="shipping-prompt" role="alert"><strong>Almost ready</strong><span>{shippingPrompt}</span></div>}
 	</div>;
 }

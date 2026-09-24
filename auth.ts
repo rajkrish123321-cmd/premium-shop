@@ -2,11 +2,11 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authenticateUser, neonConfigured } from "@/lib/neon";
 
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "trendyjewellery62@gmail.com").toLowerCase();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "admin123";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-me",
+  secret: process.env.NEXTAUTH_SECRET,
   trustHost: true,
   session: {
     strategy: "jwt",
@@ -29,7 +29,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+        if (ADMIN_EMAIL && ADMIN_PASSWORD && email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
           return { id: `admin-${email}`, email, name: "Store Administrator", role: "admin" };
         }
 
@@ -61,7 +61,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         session.user.id = String(token.id ?? token.sub ?? "");
         session.user.role = String(token.role ?? "customer");
         session.user.name = token.name ?? null;
-        session.user.email = token.email ?? null;
+        session.user.email = token.email || "";
       }
 
       return session;

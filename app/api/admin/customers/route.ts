@@ -20,7 +20,7 @@ export async function GET() {
         id: customer.id,
         email: customer.email || "",
         name: customer.name || "",
-        createdAt: "",
+        createdAt: String(customer.created_at || ""),
         lastSignInAt: customer.last_sign_in_at || undefined,
       })),
       orders: orders.map((order) => ({
