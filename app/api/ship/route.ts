@@ -21,6 +21,7 @@ export async function POST(request: Request) {
 
     if (typeof razorpayOrderId !== "string" || typeof razorpayPaymentId !== "string" || typeof signature !== "string"
       || typeof name !== "string" || !name.trim() || typeof phone !== "string" || !phone.trim()
+      || typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())
       || typeof address !== "string" || !address.trim() || typeof pincode !== "string" || !/^\d{6}$/.test(pincode)) {
       return NextResponse.json({ error: "Complete shipping details are required" }, { status: 400 });
     }
@@ -49,7 +50,7 @@ export async function POST(request: Request) {
     });
 
     const customerName = escapeHtml(name.trim());
-    const customerEmail = typeof email === "string" ? email.trim() : "";
+    const customerEmail = email.trim().toLowerCase();
     const customerPhone = escapeHtml(phone.trim());
     const shippingAddress = escapeHtml(address.trim());
     const emailHtml = `
@@ -66,29 +67,24 @@ export async function POST(request: Request) {
         <p><strong>Phone:</strong> ${customerPhone}</p>
         <p><strong>Address:</strong> ${shippingAddress}</p>
         <p><strong>Pincode:</strong> ${pincode}</p>
+        <h3>Items in your order</h3>
+        <ul>${Object.entries(pricing.cart).map(([id, quantity]) => `<li>${escapeHtml(({ "1": "Akruti Oxidised Damini Maangtikka", "2": "Etnico 18k Kundan Kamarband", "3": "Palak Art Austrian Stone Necklace", "4": "Maharani Oxidised Stone Jhumki", "5": "Darshana Oxidised Dangler (Type A)", "6": "Darshana Oxidised Dangler (Type B)" } as Record<string, string>)[id])} × ${quantity}</li>`).join("")}</ul>
         <p style="color: #666;">DTDC tracking will be added manually after dispatch.</p>
       </div>`;
 
     if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
-      try {
-        const resend = new Resend(process.env.RESEND_API_KEY);
-        await resend.emails.send({
-          from: process.env.RESEND_FROM_EMAIL,
-          to: process.env.ADMIN_EMAIL || "rajkrish123321@gmail.com",
-          subject: `New paid order: ${orderId}`,
-          html: emailHtml,
-        });
-        if (customerEmail) {
-          await resend.emails.send({
-            from: process.env.RESEND_FROM_EMAIL,
-            to: customerEmail,
-            subject: `Order confirmed: ${orderId}`,
-            html: emailHtml,
-          });
-        }
-      } catch (emailError) {
-        console.error("Order email notification failed:", emailError);
-      }
+      const resend = new Resend(process.env.RESEND_API_KEY);
+      const recipients = Array.from(new Set(["trendyjewellery62@gmail.com", customerEmail]));
+      const emailResults = await Promise.allSettled(recipients.map(to => resend.emails.send({
+        from: process.env.RESEND_FROM_EMAIL!,
+        to,
+        subject: `Order receipt ${orderId} | Trendy Jewellery`,
+        html: emailHtml,
+      })));
+      emailResults.forEach((result, index) => {
+        if (result.status === "rejected") console.error(`Order receipt delivery failed for ${recipients[index]}:`, result.reason);
+        else if (result.value.error) console.error(`Order receipt delivery failed for ${recipients[index]}:`, result.value.error);
+      });
     }
 
     return NextResponse.json({ success: true, order_id: String(order?.id || orderId) });
