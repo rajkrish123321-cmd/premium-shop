@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { neonConfigured, updatePassword } from "@/lib/neon";
+import { isPasswordValid } from "@/lib/password-strength";
 
 export async function POST(request: Request) {
   try {
@@ -8,8 +9,8 @@ export async function POST(request: Request) {
     const token = String(body.token || "");
     const password = String(body.password || "");
 
-    if (!token || password.length < 8) {
-      return NextResponse.json({ error: "A valid reset token and password of at least 8 characters are required." }, { status: 400 });
+    if (!token || !isPasswordValid(password)) {
+      return NextResponse.json({ error: "A valid reset token and a password with 8+ characters, lowercase, uppercase, and a number are required." }, { status: 400 });
     }
 
     if (!neonConfigured) return NextResponse.json({ error: "Neon authentication is not configured." }, { status: 503 });

@@ -112,7 +112,7 @@ export default function StorePage() {
 			const orderResponse = await fetch("/api/checkout", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ amount: total * 100 }),
+				body: JSON.stringify({ cart }),
 			});
 			const order = await orderResponse.json();
 			if (!orderResponse.ok) throw new Error(order.error || "Could not create payment order");

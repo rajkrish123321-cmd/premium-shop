@@ -2,11 +2,8 @@ import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
 import { authenticateUser, neonConfigured } from "@/lib/neon";
 
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL?.trim().toLowerCase();
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
-
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret: process.env.NEXTAUTH_SECRET,
+  secret: process.env.NEXTAUTH_SECRET || "dev-secret-change-me",
   trustHost: true,
   session: {
     strategy: "jwt",
@@ -29,16 +26,17 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           return null;
         }
 
-        if (ADMIN_EMAIL && ADMIN_PASSWORD && email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
-          return { id: `admin-${email}`, email, name: "Store Administrator", role: "admin" };
-        }
-
         if (!neonConfigured) return null;
         try {
           const result = await authenticateUser(email, password);
-          return { id: result.user.id, email: result.user.email || email, name: result.user.user_metadata?.name || email, role: result.user.role || (email === ADMIN_EMAIL ? "admin" : "customer") };
+          return {
+            id: result.user.id,
+            email: result.user.email || email,
+            name: result.user.user_metadata?.name || email,
+            role: result.user.role,
+          };
         } catch (error) {
-          console.warn("Neon credential lookup failed:", error);
+          console.warn("Supabase credential lookup failed:", error);
         }
 
         return null;
@@ -50,8 +48,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (user) {
         token.id = user.id;
         token.role = (user as { role?: string }).role || "customer";
-        token.name = user.name;
-        token.email = user.email;
       }
 
       return token;
@@ -60,8 +56,6 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if (session.user) {
         session.user.id = String(token.id ?? token.sub ?? "");
         session.user.role = String(token.role ?? "customer");
-        session.user.name = token.name ?? null;
-        session.user.email = token.email || "";
       }
 
       return session;

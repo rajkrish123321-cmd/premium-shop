@@ -11,6 +11,8 @@ function requireDatabase() {
 }
 
 export type AuthUser = { id: string; email: string; name: string; role: "customer" | "admin" };
+type CustomerRecord = { id: string; email: string; name: string; created_at: string; last_sign_in_at: string | null };
+type OrderRecord = { id: string; user_id: string | null; created_at: string; total_amount: number; status: string; customer_name: string; customer_email: string };
 
 export async function createUser(email: string, password: string, name: string) {
   requireDatabase();
@@ -35,15 +37,15 @@ export async function authenticateUser(email: string, password: string) {
   return { user: { id: user.id, email: user.email, user_metadata: { name: user.name }, role: user.role } };
 }
 
-export async function listUsers() {
+export async function listUsers(): Promise<CustomerRecord[]> {
   requireDatabase();
   return sql`
     select id::text, email, name, created_at, last_sign_in_at
     from users where role = 'customer' order by created_at desc
-  ` as unknown as Promise<Array<{ id: string; email: string; name: string; created_at: string; last_sign_in_at: string | null }>>;
+  ` as unknown as Promise<CustomerRecord[]>;
 }
 
-export async function getOrdersForUser(userId: string) {
+export async function getOrdersForUser(userId: string): Promise<Array<{ id: string; created_at: string; total_amount: number; status: string }>> {
   requireDatabase();
   return sql`
     select id::text, created_at, total_amount, status
@@ -51,12 +53,12 @@ export async function getOrdersForUser(userId: string) {
   ` as unknown as Promise<Array<{ id: string; created_at: string; total_amount: number; status: string }>>;
 }
 
-export async function listRecentOrders() {
+export async function listRecentOrders(): Promise<OrderRecord[]> {
   requireDatabase();
   return sql`
     select id::text, user_id::text, created_at, total_amount, status, customer_name, customer_email
     from orders order by created_at desc limit 50
-  ` as unknown as Promise<Array<{ id: string; user_id: string | null; created_at: string; total_amount: number; status: string; customer_name: string; customer_email: string }>>;
+  ` as unknown as Promise<OrderRecord[]>;
 }
 
 export async function insertOrder(order: {
@@ -81,7 +83,8 @@ export async function insertOrder(order: {
       ${order.userId || null}::uuid, ${order.razorpayOrderId}, ${order.razorpayPaymentId}, ${order.customerName},
       ${order.customerPhone}, ${order.customerEmail}, ${order.shippingAddress}, ${order.pincode},
       ${JSON.stringify(order.cartItems)}::jsonb, ${order.totalAmount}, 'paid'
-    ) on conflict (razorpay_order_id) do nothing
+    ) on conflict (razorpay_order_id) do update
+      set razorpay_order_id = excluded.razorpay_order_id
     returning id::text, total_amount, status
   `;
   return rows[0] as { id: string; total_amount: number; status: string } | undefined;

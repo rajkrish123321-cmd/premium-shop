@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import Razorpay from "razorpay";
+import { getCartPricing } from "@/lib/store-pricing";
 
 export async function POST(request: Request) {
 	try {
 		const body = await request.json();
-		const { amount } = body;
+		const pricing = getCartPricing(body?.cart);
+		if (!pricing) {
+			return NextResponse.json({ error: "Your cart contains invalid items or quantities." }, { status: 400 });
+		}
 
 		const key_id = process.env.RAZORPAY_KEY_ID || "";
 		const key_secret = process.env.RAZORPAY_KEY_SECRET || "";
@@ -19,7 +23,7 @@ export async function POST(request: Request) {
 		const razorpay = new Razorpay({ key_id, key_secret });
 
 		const options = {
-			amount: amount || 50000,
+			amount: pricing.total * 100,
 			currency: "INR",
 			receipt: "rcpt_" + Math.random().toString(36).substring(7),
 		};

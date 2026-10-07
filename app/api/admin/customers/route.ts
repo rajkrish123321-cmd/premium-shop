@@ -18,19 +18,19 @@ export async function GET() {
     return NextResponse.json({
       customers: customers.map((customer) => ({
         id: customer.id,
-        email: customer.email || "",
-        name: customer.name || "",
-        createdAt: String(customer.created_at || ""),
-        lastSignInAt: customer.last_sign_in_at || undefined,
+        email: customer.email,
+        name: customer.name,
+        createdAt: customer.created_at,
+        lastSignInAt: customer.last_sign_in_at,
       })),
       orders: orders.map((order) => ({
         id: String(order.id),
-        userId: order.user_id ? String(order.user_id) : null,
+        userId: order.user_id,
         createdAt: String(order.created_at),
         totalAmount: Number(order.total_amount),
-        status: order.status ? String(order.status) : null,
-        customerName: order.customer_name ? String(order.customer_name) : null,
-        customerEmail: order.customer_email ? String(order.customer_email) : null,
+        status: order.status,
+        customerName: order.customer_name,
+        customerEmail: order.customer_email,
       })),
     });
   } catch (error) {
