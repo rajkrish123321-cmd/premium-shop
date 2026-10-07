@@ -179,7 +179,7 @@ export default function StorePage() {
 						});
 						const shipping = await shippingResponse.json();
 						if (!shippingResponse.ok) throw new Error(shipping.error || "Shipping details could not be saved");
-						router.push(`/success?order_id=${shipping.order_id}`);
+						router.push(`/success?order_id=${encodeURIComponent(shipping.order_id)}&receipt=${shipping.receipt_status || "failed"}`);
 					} catch (error) {
 						setLoading(false);
 						showPrompt(error instanceof Error ? error.message : "Payment completed, but order confirmation failed.");

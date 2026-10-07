@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { randomUUID } from "crypto";
 import Razorpay from "razorpay";
 import { getCartPricing } from "@/lib/store-pricing";
 
@@ -25,7 +26,7 @@ export async function POST(request: Request) {
 		const options = {
 			amount: pricing.total * 100,
 			currency: "INR",
-			receipt: "rcpt_" + Math.random().toString(36).substring(7),
+			receipt: `TJ-${randomUUID()}`,
 		};
 
 		const order = await razorpay.orders.create(options);

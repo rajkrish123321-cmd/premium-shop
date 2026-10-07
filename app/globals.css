@@ -449,6 +449,9 @@
 .order-id-box { margin: 28px 0 18px; padding: 16px; background: #faf7f0; border: 1px solid #e6dcc3; }
 .order-id-box span { display: block; margin-bottom: 8px; color: #777; font: 11px Arial, sans-serif; letter-spacing: 1px; text-transform: uppercase; }
 .order-id-box strong { color: #111; font: 700 20px Arial, sans-serif; letter-spacing: 1px; }
+.receipt-status { margin: 14px 0; padding: 12px 14px; border: 1px solid; font: 13px/1.5 Arial, sans-serif; text-align: left; }
+.receipt-status-sent { border-color: #a8c8a2; background: #f1f8ef; color: #345f30; }
+.receipt-status-pending { border-color: #dfc37d; background: #fff9e9; color: #69511d; }
 .manual-shipping-note { font-size: 13px; }
 .success-button { display: inline-block; margin-top: 16px; padding: 12px 20px; background: #111; color: #fff; font: 700 13px Arial, sans-serif; text-decoration: none; }
 

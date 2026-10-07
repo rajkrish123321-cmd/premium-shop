@@ -33,61 +33,128 @@ export async function POST(request: Request) {
     }
 
     const session = await auth();
-    const orderId = `TJ-${Date.now()}-${Math.floor(1000 + Math.random() * 9000)}`;
     const finalAmount = pricing.total;
+    const customerEmail = email.trim().toLowerCase();
 
     const order = await insertOrder({
       userId: session?.user?.id || null,
       razorpayOrderId,
       razorpayPaymentId,
-      customerName: name,
+      customerName: name.trim(),
       customerPhone: phone,
-      customerEmail: email || "",
-      shippingAddress: address,
+      customerEmail,
+      shippingAddress: address.trim(),
       pincode,
       cartItems: pricing.cart,
       totalAmount: finalAmount,
     });
+    if (!order?.id) throw new Error("The paid order was not returned from the database.");
+    const orderReference = `TJ-${order.id.toUpperCase()}`;
 
     const customerName = escapeHtml(name.trim());
-    const customerEmail = email.trim().toLowerCase();
     const customerPhone = escapeHtml(phone.trim());
     const shippingAddress = escapeHtml(address.trim());
+    const formatRupees = (amount: number) => `₹${amount.toLocaleString("en-IN")}`;
+    const itemRows = pricing.items.map(item => `
+      <tr>
+        <td style="padding:10px;border-bottom:1px solid #eee;">${escapeHtml(item.name)}</td>
+        <td style="padding:10px;border-bottom:1px solid #eee;text-align:center;">${item.quantity}</td>
+        <td style="padding:10px;border-bottom:1px solid #eee;text-align:right;">${formatRupees(item.unitPrice)}</td>
+        <td style="padding:10px;border-bottom:1px solid #eee;text-align:right;">${formatRupees(item.lineTotal)}</td>
+      </tr>`).join("");
     const emailHtml = `
       <div style="font-family: Arial, sans-serif; padding: 20px; color: #111; max-width: 600px; border: 1px solid #eee; border-radius: 10px;">
         <h2 style="color: #b38728; text-transform: uppercase; letter-spacing: 2px;">Trendy Jewellery</h2>
-        <h3 style="font-size: 20px;">New paid order received</h3>
+        <h3 style="font-size: 20px;">${customerEmail ? "Your order receipt" : "New paid order received"}</h3>
         <div style="background: #fafafa; padding: 15px; border-radius: 6px; margin: 20px 0;">
-          <p><strong>Order ID:</strong> ${orderId}</p>
+          <p><strong>Order ID:</strong> ${orderReference}</p>
           <p><strong>Razorpay Payment Order:</strong> ${razorpayOrderId}</p>
-          <p><strong>Total Paid:</strong> ₹${finalAmount}</p>
+          <p><strong>Payment ID:</strong> ${escapeHtml(razorpayPaymentId)}</p>
         </div>
         <p><strong>Customer:</strong> ${customerName}</p>
-        <p><strong>Email:</strong> ${escapeHtml(customerEmail || "Not provided")}</p>
+        <p><strong>Email:</strong> ${escapeHtml(customerEmail)}</p>
         <p><strong>Phone:</strong> ${customerPhone}</p>
         <p><strong>Address:</strong> ${shippingAddress}</p>
-        <p><strong>Pincode:</strong> ${pincode}</p>
+        <p><strong>Pincode:</strong> ${escapeHtml(pincode)}</p>
         <h3>Items in your order</h3>
-        <ul>${Object.entries(pricing.cart).map(([id, quantity]) => `<li>${escapeHtml(({ "1": "Akruti Oxidised Damini Maangtikka", "2": "Etnico 18k Kundan Kamarband", "3": "Palak Art Austrian Stone Necklace", "4": "Maharani Oxidised Stone Jhumki", "5": "Darshana Oxidised Dangler (Type A)", "6": "Darshana Oxidised Dangler (Type B)" } as Record<string, string>)[id])} × ${quantity}</li>`).join("")}</ul>
+        <table style="width:100%;border-collapse:collapse;font-size:14px;">
+          <thead><tr><th style="padding:10px;text-align:left;">Product</th><th style="padding:10px;">Qty</th><th style="padding:10px;text-align:right;">Price</th><th style="padding:10px;text-align:right;">Amount</th></tr></thead>
+          <tbody>${itemRows}</tbody>
+        </table>
+        <div style="margin-top:16px;text-align:right;line-height:1.8;">
+          <div>Subtotal: ${formatRupees(pricing.subtotal)}</div>
+          <div>Estimated IGST (3%): ${formatRupees(pricing.tax)}</div>
+          <strong>Total paid: ${formatRupees(finalAmount)}</strong>
+        </div>
         <p style="color: #666;">DTDC tracking will be added manually after dispatch.</p>
       </div>`;
+    const emailText = [
+      "Trendy Jewellery order receipt",
+      `Order ID: ${orderReference}`,
+      `Razorpay Order ID: ${razorpayOrderId}`,
+      `Payment ID: ${razorpayPaymentId}`,
+      `Customer: ${name.trim()}`,
+      `Email: ${customerEmail}`,
+      `Phone: ${phone.trim()}`,
+      `Shipping address: ${address.trim()}, ${pincode}`,
+      "Items:",
+      ...pricing.items.map(item => `${item.name} | Qty ${item.quantity} | ${formatRupees(item.unitPrice)} each | ${formatRupees(item.lineTotal)}`),
+      `Subtotal: ${formatRupees(pricing.subtotal)}`,
+      `Estimated IGST (3%): ${formatRupees(pricing.tax)}`,
+      `Total paid: ${formatRupees(finalAmount)}`,
+    ].join("\n");
 
-    if (process.env.RESEND_API_KEY && process.env.RESEND_FROM_EMAIL) {
+    const receiptDelivery = { customer: false, store: false };
+    const senderAddress = process.env.RESEND_FROM_EMAIL || "";
+    const senderDomain = senderAddress.match(/@([^>\s]+)/)?.[1]?.toLowerCase();
+    const senderDomainIsNotTestDomain = Boolean(senderDomain && senderDomain !== "resend.dev");
+    let receiptStatus: "sent" | "partial" | "failed" | "sender_not_configured" = "failed";
+
+    if (process.env.RESEND_API_KEY && senderDomainIsNotTestDomain) {
       const resend = new Resend(process.env.RESEND_API_KEY);
-      const recipients = Array.from(new Set(["trendyjewellery62@gmail.com", customerEmail]));
-      const emailResults = await Promise.allSettled(recipients.map(to => resend.emails.send({
-        from: process.env.RESEND_FROM_EMAIL!,
-        to,
-        subject: `Order receipt ${orderId} | Trendy Jewellery`,
-        html: emailHtml,
-      })));
-      emailResults.forEach((result, index) => {
-        if (result.status === "rejected") console.error(`Order receipt delivery failed for ${recipients[index]}:`, result.reason);
-        else if (result.value.error) console.error(`Order receipt delivery failed for ${recipients[index]}:`, result.value.error);
-      });
+      const sendReceipt = async (to: string) => {
+        try {
+          const result = await resend.emails.send({
+            from: process.env.RESEND_FROM_EMAIL!,
+            to,
+            subject: `Order receipt ${orderReference} | Trendy Jewellery`,
+            html: emailHtml,
+            text: emailText,
+          });
+          if (result.error) {
+            console.error(`Order receipt rejected for ${to}:`, result.error);
+            return false;
+          }
+          if (!result.data?.id) {
+            console.error(`Order receipt was not accepted for ${to}: Resend returned no message ID.`);
+            return false;
+          }
+          return true;
+        } catch (emailError) {
+          console.error(`Order receipt failed for ${to}:`, emailError);
+          return false;
+        }
+      };
+      const [customerSent, storeSent] = await Promise.all([
+        sendReceipt(customerEmail),
+        customerEmail === "trendyjewellery62@gmail.com" ? Promise.resolve(true) : sendReceipt("trendyjewellery62@gmail.com"),
+      ]);
+      receiptDelivery.customer = customerSent;
+      receiptDelivery.store = storeSent;
+      receiptStatus = customerSent && storeSent ? "sent" : customerSent || storeSent ? "partial" : "failed";
+    } else if (process.env.RESEND_API_KEY && senderAddress) {
+      receiptStatus = "sender_not_configured";
+      console.error("Order receipt not sent: configure RESEND_FROM_EMAIL using a sender at a verified domain you own; resend.dev is restricted to testing.");
+    } else {
+      console.error("Order receipt was not sent: RESEND_API_KEY or RESEND_FROM_EMAIL is missing.");
     }
 
-    return NextResponse.json({ success: true, order_id: String(order?.id || orderId) });
+    return NextResponse.json({
+      success: true,
+      order_id: orderReference,
+      receipt_status: receiptStatus,
+      receipt_delivery: receiptDelivery,
+    });
   } catch (error) {
     console.error("Order Processing Error:", error);
     return NextResponse.json({ error: "Failed to process order" }, { status: 500 });
