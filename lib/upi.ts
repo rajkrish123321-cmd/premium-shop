@@ -4,7 +4,7 @@ export function buildUpiPaymentLink({
   amount,
   orderId,
   payeeVpa = DEFAULT_PAYEE_VPA,
-  brandName = "TrendyJewellery",
+  brandName = "Trendy Jewellery",
 }: {
   amount: number;
   orderId: string;

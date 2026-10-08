@@ -4,6 +4,8 @@ import { createPendingOrder } from "@/lib/neon";
 import { buildUpiPaymentLink, DEFAULT_PAYEE_VPA } from "@/lib/upi";
 import { getCartPricing } from "@/lib/store-pricing";
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export async function POST(request: Request) {
   try {
     const body = await request.json();
@@ -13,10 +15,15 @@ export async function POST(request: Request) {
     const address = typeof body?.address === "string" ? body.address.trim() : "";
     const pincode = typeof body?.pincode === "string" ? body.pincode.trim() : "";
     const cart = body?.cart ?? {};
-    const userId = typeof body?.userId === "string" ? body.userId : null;
+    const submittedUserId = typeof body?.userId === "string" ? body.userId.trim() : "";
+    const userId = submittedUserId || null;
 
     if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !phone || !address || !/^\d{6}$/.test(pincode)) {
       return NextResponse.json({ error: "Complete shipping details are required for UPI checkout." }, { status: 400 });
+    }
+
+    if (userId && !UUID_PATTERN.test(userId)) {
+      return NextResponse.json({ error: "The signed-in customer reference is invalid. Please sign in again." }, { status: 400 });
     }
 
     const pricing = getCartPricing(cart);

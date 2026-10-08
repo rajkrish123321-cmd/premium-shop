@@ -15,10 +15,19 @@ export default function UPICheckoutButton({ amount, onPaymentInitiated }: UPIChe
   const handlePayment = async () => {
     setErrorMessage("");
     setLoading(true);
+    const isMobileDevice = /android|iphone|ipad|ipod/i.test(navigator.userAgent);
+    const paymentWindow = isMobileDevice ? window.open("about:blank", "_blank") : null;
+
     try {
       const request = await onPaymentInitiated();
-      if (request) setPaymentRequest(request);
+      if (request) {
+        setPaymentRequest(request);
+        if (paymentWindow) paymentWindow.location.href = request.upiUrl;
+      } else {
+        paymentWindow?.close();
+      }
     } catch (error) {
+      paymentWindow?.close();
       console.error("Payment initiation failed:", error);
       setErrorMessage(error instanceof Error ? error.message : "Unable to prepare payment. Please try again.");
     } finally {
@@ -34,8 +43,8 @@ export default function UPICheckoutButton({ amount, onPaymentInitiated }: UPIChe
         </button>
       ) : (
         <div className="upi-payment-ready" role="status">
-          <p>Order #{paymentRequest.orderId} is ready. Choose your UPI app to pay.</p>
-          <a className="upi-checkout-button" href={paymentRequest.upiUrl}>Open UPI app</a>
+          <p>Order #{paymentRequest.orderId} is ready. If your UPI app did not open, choose an app below.</p>
+          <a className="upi-checkout-button" href={paymentRequest.upiUrl}>Choose UPI app</a>
         </div>
       )}
       {errorMessage && <p className="payment-error" role="alert">{errorMessage}</p>}
