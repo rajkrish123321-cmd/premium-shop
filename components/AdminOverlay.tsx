@@ -51,6 +51,30 @@ export default function AdminOverlay() {
   }, [session]);
 
   useEffect(() => {
+    if (!session || session.user.role !== "admin") return;
+
+    let tapCount = 0;
+    let lastTapAt = 0;
+
+    const handleMobileTap = (event: TouchEvent) => {
+      const header = document.querySelector(".site-header");
+      if (!(event.target instanceof Node) || !header?.contains(event.target)) return;
+
+      const now = Date.now();
+      tapCount = now - lastTapAt <= 500 ? tapCount + 1 : 1;
+      lastTapAt = now;
+
+      if (tapCount === 3) {
+        tapCount = 0;
+        setShowAdmin((current) => !current);
+      }
+    };
+
+    window.addEventListener("touchstart", handleMobileTap, { passive: true });
+    return () => window.removeEventListener("touchstart", handleMobileTap);
+  }, [session]);
+
+  useEffect(() => {
     if (!showAdmin || !session || session.user.role !== "admin") return;
     void fetchOrderLogs();
   }, [showAdmin, session]);
