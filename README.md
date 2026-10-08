@@ -36,10 +36,9 @@ You can check out [the Next.js GitHub repository](https://github.com/vercel/next
 3. Add these Environment Variables in Vercel for **Production**, **Preview**, and **Development** as needed:
 
 ```text
-RAZORPAY_KEY_ID
-RAZORPAY_KEY_SECRET
 DATABASE_URL
 NEON_DATABASE_URL
+UPI_PAYEE_VPA=9507004532@ibl
 ```
 
 4. Add these authentication and database variables too:

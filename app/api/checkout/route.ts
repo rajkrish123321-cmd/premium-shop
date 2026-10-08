@@ -1,44 +1,56 @@
 import { NextResponse } from "next/server";
-import { randomUUID } from "crypto";
-import Razorpay from "razorpay";
+
+import { createPendingOrder } from "@/lib/neon";
+import { buildUpiPaymentLink, DEFAULT_PAYEE_VPA } from "@/lib/upi";
 import { getCartPricing } from "@/lib/store-pricing";
 
 export async function POST(request: Request) {
-	try {
-		const body = await request.json();
-		const pricing = getCartPricing(body?.cart);
-		if (!pricing) {
-			return NextResponse.json({ error: "Your cart contains invalid items or quantities." }, { status: 400 });
-		}
+  try {
+    const body = await request.json();
+    const name = typeof body?.name === "string" ? body.name.trim() : "";
+    const email = typeof body?.email === "string" ? body.email.trim().toLowerCase() : "";
+    const phone = typeof body?.phone === "string" ? body.phone.trim() : "";
+    const address = typeof body?.address === "string" ? body.address.trim() : "";
+    const pincode = typeof body?.pincode === "string" ? body.pincode.trim() : "";
+    const cart = body?.cart ?? {};
+    const userId = typeof body?.userId === "string" ? body.userId : null;
 
-		const key_id = process.env.RAZORPAY_KEY_ID || "";
-		const key_secret = process.env.RAZORPAY_KEY_SECRET || "";
+    if (!name || !email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || !phone || !address || !/^\d{6}$/.test(pincode)) {
+      return NextResponse.json({ error: "Complete shipping details are required for UPI checkout." }, { status: 400 });
+    }
 
-		if (!key_id || !key_secret) {
-			return NextResponse.json(
-				{ error: "Razorpay keys missing from environment" },
-				{ status: 400 },
-			);
-		}
+    const pricing = getCartPricing(cart);
+    if (!pricing) {
+      return NextResponse.json({ error: "Your cart contains invalid items or quantities." }, { status: 400 });
+    }
 
-		const razorpay = new Razorpay({ key_id, key_secret });
+    const pendingOrder = await createPendingOrder({
+      userId,
+      customerName: name,
+      customerPhone: phone,
+      customerEmail: email,
+      shippingAddress: address,
+      pincode,
+      cartItems: pricing.cart,
+      totalAmount: pricing.total,
+      payeeVpa: DEFAULT_PAYEE_VPA,
+    });
 
-		const options = {
-			amount: pricing.total * 100,
-			currency: "INR",
-			receipt: `TJ-${randomUUID()}`,
-		};
+    if (!pendingOrder?.id) {
+      return NextResponse.json({ error: "Unable to create a pending order for UPI payment." }, { status: 500 });
+    }
 
-		const order = await razorpay.orders.create(options);
-
-		return NextResponse.json({
-			orderId: order.id,
-			keyId: key_id,
-			amount: order.amount,
-			currency: order.currency,
-		});
-	} catch (error) {
-		console.error("Checkout API Error:", error);
-		return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
-	}
+    return NextResponse.json({
+      ok: true,
+      orderId: pendingOrder.id,
+      paymentStatus: pendingOrder.payment_status,
+      amount: pricing.total,
+      upiUrl: buildUpiPaymentLink({ amount: pricing.total, orderId: pendingOrder.id }),
+      payeeVpa: DEFAULT_PAYEE_VPA,
+    });
+  } catch (error) {
+    console.error("Checkout API Error:", error);
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  }
 }
+

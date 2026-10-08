@@ -1,16 +1,11 @@
 /* eslint-disable @next/next/no-img-element */
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 
-declare global {
-	interface Window {
-		Razorpay: new (options: Record<string, unknown>) => { open: () => void };
-	}
-}
+import UPICheckoutButton from "@/components/UPICheckoutButton";
 
 const PRODUCTS = [
 	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "Stunning Navratri Oxidised Plated Masterpiece" },
@@ -23,11 +18,72 @@ const PRODUCTS = [
 
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
 const STOCK_LIMIT = 30;
+const CART_STORAGE_KEY = "trendy-jewellery-cart-v1";
+
+const readStoredCart = () => {
+	if (typeof window === "undefined") return {} as { [id: number]: number };
+	try {
+		const savedCart = window.localStorage.getItem(CART_STORAGE_KEY);
+		if (!savedCart) return {} as { [id: number]: number };
+		const parsed = JSON.parse(savedCart) as Record<string, number>;
+		return Object.fromEntries(
+			Object.entries(parsed)
+				.filter(([key, value]) => Number.isFinite(Number(key)) && Number.isFinite(Number(value)) && Number(value) > 0)
+				.map(([key, value]) => [Number(key), Math.min(STOCK_LIMIT, Number(value))]),
+		) as { [id: number]: number };
+	} catch {
+		return {} as { [id: number]: number };
+	}
+};
+
+const cartSubscribers = new Set<() => void>();
+const subscribeToCart = (listener: () => void) => {
+	cartSubscribers.add(listener);
+	window.addEventListener("storage", listener);
+	return () => {
+		cartSubscribers.delete(listener);
+		window.removeEventListener("storage", listener);
+	};
+};
+const getCartSnapshot = () => JSON.stringify(readStoredCart());
+const getServerCartSnapshot = () => "{}";
+
+function ProductImage({ src, alt }: { src: string; alt: string }) {
+	const [isZoomed, setIsZoomed] = useState(false);
+	const moveZoom = (event: React.PointerEvent<HTMLButtonElement>) => {
+		const bounds = event.currentTarget.getBoundingClientRect();
+		const x = ((event.clientX - bounds.left) / bounds.width) * 100;
+		const y = ((event.clientY - bounds.top) / bounds.height) * 100;
+		event.currentTarget.style.setProperty("--zoom-x", `${x}%`);
+		event.currentTarget.style.setProperty("--zoom-y", `${y}%`);
+	};
+
+	return <button
+		className={`product-visual${isZoomed ? " is-zoomed" : ""}`}
+		type="button"
+		aria-label={`${isZoomed ? "Zoom out from" : "Zoom in on"} ${alt}`}
+		aria-pressed={isZoomed}
+		onPointerMove={moveZoom}
+		onPointerLeave={event => {
+			if (event.pointerType === "mouse") setIsZoomed(false);
+		}}
+		onClick={() => setIsZoomed(value => !value)}
+	>
+		<img src={src} alt={alt} />
+		<span className="product-zoom-hint" aria-hidden="true">{isZoomed ? "Tap to close" : "View detail"}</span>
+	</button>;
+}
 
 export default function StorePage() {
-	const router = useRouter();
 	const { data: session } = useSession();
-	const [cart, setCart] = useState<{ [id: number]: number }>({});
+	const cartSnapshot = useSyncExternalStore(subscribeToCart, getCartSnapshot, getServerCartSnapshot);
+	const cart = JSON.parse(cartSnapshot) as { [id: number]: number };
+	const setCart: React.Dispatch<React.SetStateAction<{ [id: number]: number }>> = update => {
+		const currentCart = readStoredCart();
+		const nextCart = typeof update === "function" ? update(currentCart) : update;
+		window.localStorage.setItem(CART_STORAGE_KEY, JSON.stringify(nextCart));
+		cartSubscribers.forEach(listener => listener());
+	};
 	const [phone, setPhone] = useState("");
 	const [name, setName] = useState("");
 	const [email, setEmail] = useState("");
@@ -35,10 +91,10 @@ export default function StorePage() {
 	const [address, setAddress] = useState("");
 	const [landmark, setLandmark] = useState("");
 	const [pincode, setPincode] = useState("");
-	const [loading, setLoading] = useState(false);
 	const [cartFeedback, setCartFeedback] = useState<{ id: number; message: string; key: number } | null>(null);
 	const [shippingPrompt, setShippingPrompt] = useState("");
 	const promptTimer = useRef<number | null>(null);
+	const feedbackTimer = useRef<number | null>(null);
 	const displayName = session?.user?.name?.trim() || session?.user?.email?.split("@")[0] || "Guest";
 	const initials = displayName.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
 
@@ -65,28 +121,52 @@ export default function StorePage() {
 		setShippingPrompt("");
 	};
 	const showCartFeedback = (id: number, message: string) => {
+		if (feedbackTimer.current) window.clearTimeout(feedbackTimer.current);
 		setCartFeedback(previous => ({ id, message, key: (previous?.key || 0) + 1 }));
-		window.setTimeout(() => setCartFeedback(null), 2200);
+		feedbackTimer.current = window.setTimeout(() => setCartFeedback(null), 2200);
 	};
 
 	const updateQuantity = (id: number, delta: number) => setCart(prev => {
-		const updated = Math.min(STOCK_LIMIT, (prev[id] || 0) + delta);
-		if (updated <= 0) { const copy = { ...prev }; delete copy[id]; return copy; }
-		return { ...prev, [id]: updated };
+		const currentQuantity = prev[id] || 0;
+		const updated = currentQuantity + delta;
+		if (updated <= 0) {
+			const copy = { ...prev };
+			delete copy[id];
+			if (currentQuantity > 0) {
+				showCartFeedback(id, "Removed from cart");
+			}
+			return copy;
+		}
+		const nextQuantity = Math.min(STOCK_LIMIT, updated);
+		if (delta > 0) {
+			showCartFeedback(id, nextQuantity > currentQuantity ? "Added to cart" : "Cart updated");
+		}
+		return { ...prev, [id]: nextQuantity };
 	});
 	const addToCart = (id: number) => {
-		const currentQuantity = cart[id] || 0;
-		if (currentQuantity >= STOCK_LIMIT) {
-			showCartFeedback(id, "Stock limit reached");
-			return;
-		}
-		updateQuantity(id, 1);
-		showCartFeedback(id, "Added to cart");
+		setCart(prev => {
+			const currentQuantity = prev[id] || 0;
+			if (currentQuantity >= STOCK_LIMIT) {
+				showCartFeedback(id, "Stock limit reached");
+				return prev;
+			}
+			const nextQuantity = Math.min(STOCK_LIMIT, currentQuantity + 1);
+			showCartFeedback(id, "Added to cart");
+			return { ...prev, [id]: nextQuantity };
+		});
 	};
 	const buyNow = (id: number) => {
-		setCart(previous => ({ ...previous, [id]: Math.min(STOCK_LIMIT, (previous[id] || 0) + 1) }));
-		showCartFeedback(id, "Ready in your cart");
+		setCart(previous => {
+			const currentQuantity = previous[id] || 0;
+			const nextQuantity = Math.min(STOCK_LIMIT, currentQuantity + 1);
+			showCartFeedback(id, "Ready in your cart");
+			return { ...previous, [id]: nextQuantity };
+		});
 		scrollToPayment();
+	};
+	const clearCart = () => {
+		setCart({});
+		showPrompt("Cart cleared. You can start fresh anytime.");
 	};
 	const cartItemCount = Object.values(cart).reduce((totalCount, quantity) => totalCount + quantity, 0);
 	const scrollToPayment = () => {
@@ -109,101 +189,60 @@ export default function StorePage() {
 	}, 0);
 	const igst = Math.round(subtotal * 0.03);
 	const total = subtotal + igst;
-	const handleCheckout = async () => {
-		if (!Object.keys(cart).length) return showPrompt("Add a piece to your cart before checkout.");
+	const createPendingUPIOrder = async () => {
+		if (!Object.keys(cart).length) {
+			showPrompt("Add a piece to your cart before checkout.");
+			return null;
+		}
 		const missingField = !name.trim() ? "full name" : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim()) ? "a valid email for your receipt" : !/^\d{10,}$/.test(phone.replace(/\D/g, "")) ? "a valid mobile number" : !address.trim() || address.trim().length < 5 ? "a complete shipping address" : !/^\d{6}$/.test(pincode) ? "a 6-digit pincode" : "";
 		if (missingField) {
 			showPrompt(`Please enter ${missingField} to continue securely.`);
 			document.querySelector(".shipping-fields")?.scrollIntoView({ behavior: "smooth", block: "center" });
-			return;
+			return null;
 		}
 		dismissPrompt();
-		setLoading(true);
 		try {
-			const script = document.querySelector<HTMLScriptElement>('script[src="https://checkout.razorpay.com/v1/checkout.js"]') || document.createElement("script");
-			if (!script.src) {
-				script.src = "https://checkout.razorpay.com/v1/checkout.js";
-				script.async = true;
-				document.body.appendChild(script);
-			}
-			await new Promise<void>((resolve, reject) => {
-				if (window.Razorpay) return resolve();
-				script.onload = () => resolve();
-				script.onerror = () => reject(new Error("Razorpay could not be loaded"));
-			});
-
-			const orderResponse = await fetch("/api/checkout", {
+			const response = await fetch("/api/checkout", {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ cart }),
+				body: JSON.stringify({
+					cart,
+					name,
+					email,
+					phone,
+					address: `${address}${landmark ? `, ${landmark}` : ""}`,
+					pincode,
+					userId: session?.user?.id || null,
+				}),
 			});
-			const order = await orderResponse.json();
-			if (!orderResponse.ok) throw new Error(order.error || "Could not create payment order");
-
-			const razorpay = new window.Razorpay({
-				key: order.keyId,
-				amount: order.amount,
-				currency: order.currency,
-				name: "Trendy Jewellery",
-				description: "Premium jewellery order",
-				order_id: order.orderId,
-				prefill: { name, email, contact: phone },
-				theme: { color: "#b38728" },
-				handler: async (payment: Record<string, string>) => {
-					try {
-						const verifyResponse = await fetch("/api/verify", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								razorpay_order_id: payment.razorpay_order_id,
-								razorpay_payment_id: payment.razorpay_payment_id,
-								razorpay_signature: payment.razorpay_signature,
-							}),
-						});
-						if (!verifyResponse.ok) throw new Error("Payment verification failed");
-						const shippingResponse = await fetch("/api/ship", {
-							method: "POST",
-							headers: { "Content-Type": "application/json" },
-							body: JSON.stringify({
-								orderId: payment.razorpay_order_id,
-								paymentId: payment.razorpay_payment_id,
-								signature: payment.razorpay_signature,
-								name,
-								email,
-								phone,
-								address: `${address}${landmark ? `, ${landmark}` : ""}`,
-								pincode,
-								cart,
-								userId: session?.user?.id || null,
-							}),
-						});
-						const shipping = await shippingResponse.json();
-						if (!shippingResponse.ok) throw new Error(shipping.error || "Shipping details could not be saved");
-						router.push(`/success?order_id=${encodeURIComponent(shipping.order_id)}&receipt=${shipping.receipt_status || "failed"}`);
-					} catch (error) {
-						setLoading(false);
-						showPrompt(error instanceof Error ? error.message : "Payment completed, but order confirmation failed.");
-					}
-				},
-			});
-			setLoading(false);
-			razorpay.open();
+			const result = await response.json();
+			if (!response.ok) throw new Error(result.error || "Could not create pending order");
+			if (!result.orderId) throw new Error("Order ID was not returned.");
+			return String(result.orderId);
 		} catch (error) {
-			setLoading(false);
 			showPrompt(error instanceof Error ? error.message : "Unable to start payment.");
+			return null;
 		}
 	};
 
 	return <div style={{ minHeight: "100vh", background: "#fdfbf7", color: "#111", fontFamily: "Georgia, serif", paddingBottom: 100 }}>
 		<div className="trust-bar">ALL INDIA DELIVERY <span>•</span> TRUSTED AUTHENTIC BRAND <span>•</span> SECURE PAYMENTS</div>
-		<header className="site-header" style={{ borderBottom: "1px solid #e6dcc3", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff" }}>
+		<header className="site-header" style={{ borderBottom: "1px solid #e6dcc3", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", flexWrap: "nowrap", gap: 10 }}>
 			<h1 className="brand-title" style={{ fontSize: 26, letterSpacing: 2, color: "#b38728", margin: 0 }}>TRENDY JEWELLERY</h1>
 			<Link className="account-link" href={session ? "/dashboard" : "/login"}><span className="account-avatar">{session ? initials : "TJ"}</span><span><small>{session ? "Welcome back" : "Personal room"}</small><strong>{session ? displayName : "Log in / Sign up"}</strong></span></Link>
 			<button className="cart-badge" type="button" aria-label={`${cartItemCount} items in cart. Review cart and checkout.`} onClick={scrollToPayment}><span aria-hidden="true">🛍</span> Cart <b>{cartItemCount}</b></button>
 		</header>
-		<section className="hero-section" style={{ textAlign: "center", padding: "60px 20px", background: "linear-gradient(135deg,#111,#2c2c2c)", color: "#fdfbf7" }}><p className="hero-kicker">EVERYDAY TREASURES, BEAUTIFULLY MADE</p><h2>Jewellery that feels like you</h2><p style={{ color: "#d4af37" }}>Discover authentic handcrafted styles, thoughtfully priced with savings up to 40%.</p></section>
-		<main style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", display: "grid", gridTemplateColumns: "2fr 1fr", gap: 40 }}>
-			<div className="catalog-column"><div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(2,1fr)", gap: 24 }}>{PRODUCTS.map(product => { const quantity = cart[product.id] || 0; return <div key={product.id} className="luxury-card product-card" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><div className="product-visual"><img src={product.image} alt={product.name} /><img className="product-editorial-image" src={product.editorialImage} alt={`${product.name} worn`} /></div>
+		<section className="hero-section">
+			<div className="hero-copy">
+				<p className="hero-kicker">THE EVERYDAY HEIRLOOM EDIT</p>
+				<h2>A little brilliance, every day.</h2>
+				<p>Hand-finished jewellery for moments that feel like yours.</p>
+				<a className="hero-cta" href="#collection">Discover the collection <span aria-hidden="true">↘</span></a>
+			</div>
+			<div className="hero-art" aria-hidden="true"><img src="/item3.jpg" alt="" /></div>
+		</section>
+		<main style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(300px, 1fr)", gap: 40, alignItems: "start" }}>
+			<div className="catalog-column" id="collection"><div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24 }}>{PRODUCTS.map(product => { const quantity = cart[product.id] || 0; return <div key={product.id} className="luxury-card product-card" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><ProductImage src={product.image} alt={product.name} />
 				<h3>{product.name}</h3>
 				<p>{product.desc}</p>
 				<strong style={{ color: "#b38728" }}>₹{product.price.toLocaleString("en-IN")}</strong>
@@ -267,15 +306,20 @@ export default function StorePage() {
 				<strong>Total Amount: ₹{total.toLocaleString("en-IN")}</strong>
 				<br />
 				<div className="gemini-strip payment-gateway">
-					<button className="checkout-button" onClick={handleCheckout} disabled={loading}>{loading ? "Opening Secure Payment..." : "Pay Securely via Razorpay"}</button>
+					{cartItemCount > 0 && (
+						<button type="button" onClick={clearCart} style={{ marginBottom: 12, width: "100%", padding: "10px 12px", border: "1px solid #d8d0c7", background: "#faf7f2", color: "#3c2d23", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
+							Clear cart
+						</button>
+					)}
+					<UPICheckoutButton amount={total} onPaymentInitiated={createPendingUPIOrder} />
 				</div>
 			</aside>
 		</main>
 		<a className="store-whatsapp" href="https://wa.me/919279566257" target="_blank" rel="noopener noreferrer" style={{ position: "fixed", bottom: 30, right: 30, fontSize: 30 }}>
 			💬
 		</a>
-		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key}><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" /><span>{cartFeedback.message}</span><b>🛍</b></div>}
-		{cartItemCount > 0 && <button className="quick-checkout-shortcut" type="button" onClick={scrollToPayment}><span>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong>Review cart & checkout</strong></button>}
-		{shippingPrompt && <div className="shipping-prompt" role="alert"><strong>Almost ready</strong><span>{shippingPrompt}</span><button type="button" aria-label="Dismiss message" onClick={dismissPrompt}>Dismiss</button></div>}
+		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key} style={{ position: "fixed", left: "50%", bottom: "calc(16px + env(safe-area-inset-bottom))", transform: "translateX(-50%)", width: "min(92vw, 380px)", background: "linear-gradient(135deg, #20152d 0%, #5f259f 100%)", color: "#fff", borderRadius: 16, boxShadow: "0 16px 40px rgba(35, 17, 51, 0.38)", zIndex: 9999, display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", fontFamily: "sans-serif" }}><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 10, border: "1px solid rgba(255,255,255,0.25)" }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", opacity: 0.8 }}>Cart update</div><div style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cartFeedback.message}</div></div><b style={{ fontSize: 20 }}>🛍</b></div>}
+		{cartItemCount > 0 && <button className="quick-checkout-shortcut" type="button" onClick={scrollToPayment} style={{ position: "fixed", left: "50%", bottom: "calc(88px + env(safe-area-inset-bottom))", transform: "translateX(-50%)", width: "min(92vw, 420px)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, background: "linear-gradient(135deg, #1d1d1d 0%, #343434 100%)", color: "#fff", border: "none", borderRadius: 16, boxShadow: "0 18px 38px rgba(0,0,0,0.28)", zIndex: 9998, padding: "12px 18px", fontFamily: "sans-serif" }}><span style={{ fontSize: 14, fontWeight: 600 }}>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong style={{ fontSize: 14 }}>Review cart & checkout</strong></button>}
+		{shippingPrompt && <div className="shipping-prompt" role="alert" style={{ position: "fixed", left: "50%", bottom: "calc(18px + env(safe-area-inset-bottom))", transform: "translateX(-50%)", width: "min(92vw, 420px)", background: "rgba(24, 19, 27, 0.95)", color: "#fff", borderRadius: 14, boxShadow: "0 18px 42px rgba(0,0,0,0.35)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", fontFamily: "sans-serif" }}><div style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 14 }}>Almost ready</strong><span style={{ display: "block", fontSize: 13, opacity: 0.9 }}>{shippingPrompt}</span></div><button type="button" aria-label="Dismiss message" onClick={dismissPrompt} style={{ border: "none", background: "transparent", color: "#fff", fontWeight: 700, cursor: "pointer", padding: 0 }}>Dismiss</button></div>}
 	</div>;
 }
