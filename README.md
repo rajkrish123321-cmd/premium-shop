@@ -54,6 +54,8 @@ RESEND_FROM_EMAIL
 
 Run `neon/schema.sql` in the Neon SQL editor before deploying. `DATABASE_URL` (or `NEON_DATABASE_URL`) is required for accounts and orders. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` enable password reset and order notification emails; email delivery is intentionally best-effort after a paid order is stored.
 
+For an existing database created by the older Razorpay schema, run `neon/migrations/20261008_upi_orders_compat.sql` once before deploying the UPI checkout. It keeps historical Razorpay IDs intact while allowing new UPI orders.
+
 5. In Vercel, open **Settings -> Domains**, add `trendyjewellery.in` and `www.trendyjewellery.in`, then copy the DNS records Vercel provides into your domain registrar.
 
 The site metadata is configured for `https://trendyjewellery.in`. Keep `.env.local` local and never commit it; production secrets belong in Vercel Environment Variables.
