@@ -4,55 +4,41 @@ import React, { useState } from "react";
 
 type UPICheckoutButtonProps = {
   amount: number;
-  orderDetails?: Record<string, unknown>;
-  onPaymentInitiated: () => Promise<string | null>;
+  onPaymentInitiated: () => Promise<{ orderId: string; upiUrl: string } | null>;
 };
 
 export default function UPICheckoutButton({ amount, onPaymentInitiated }: UPICheckoutButtonProps) {
   const [loading, setLoading] = useState(false);
+  const [paymentRequest, setPaymentRequest] = useState<{ orderId: string; upiUrl: string } | null>(null);
+  const [errorMessage, setErrorMessage] = useState("");
 
   const handlePayment = async () => {
+    setErrorMessage("");
     setLoading(true);
     try {
-      const orderId = await onPaymentInitiated();
-      if (!orderId) {
-        alert("Failed to initialize order. Please try again.");
-        setLoading(false);
-        return;
-      }
-
-      const payeeVPA = "9507004532@ibl";
-      const brandName = encodeURIComponent("TrendyJewellery");
-      const transactionNote = encodeURIComponent(`Store Order #${orderId}`);
-      const upiUrl = `upi://pay?pa=${payeeVPA}&pn=${brandName}&tn=${transactionNote}&am=${amount}&cu=INR`;
-
-      window.location.href = upiUrl;
+      const request = await onPaymentInitiated();
+      if (request) setPaymentRequest(request);
     } catch (error) {
       console.error("Payment initiation failed:", error);
+      setErrorMessage(error instanceof Error ? error.message : "Unable to prepare payment. Please try again.");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <button
-      type="button"
-      onClick={handlePayment}
-      disabled={loading || !amount}
-      style={{
-        width: "100%",
-        padding: "14px",
-        backgroundColor: "#5f259f",
-        color: "#ffffff",
-        fontSize: "16px",
-        fontWeight: 700,
-        border: "none",
-        borderRadius: "8px",
-        cursor: "pointer",
-        boxShadow: "0 4px 6px rgba(0,0,0,0.1)",
-      }}
-    >
-      {loading ? "Opening UPI Apps..." : `Pay ₹${amount} via PhonePe / UPI`}
-    </button>
+    <div className="upi-checkout">
+      {!paymentRequest ? (
+        <button type="button" className="upi-checkout-button" onClick={handlePayment} disabled={loading || !amount}>
+          {loading ? "Preparing secure payment..." : `Continue to UPI payment · ₹${amount.toLocaleString("en-IN")}`}
+        </button>
+      ) : (
+        <div className="upi-payment-ready" role="status">
+          <p>Order #{paymentRequest.orderId} is ready. Choose your UPI app to pay.</p>
+          <a className="upi-checkout-button" href={paymentRequest.upiUrl}>Open UPI app</a>
+        </div>
+      )}
+      {errorMessage && <p className="payment-error" role="alert">{errorMessage}</p>}
+    </div>
   );
 }

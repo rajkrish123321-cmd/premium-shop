@@ -189,7 +189,7 @@ export default function StorePage() {
 	}, 0);
 	const igst = Math.round(subtotal * 0.03);
 	const total = subtotal + igst;
-	const createPendingUPIOrder = async () => {
+	const createPendingUPIOrder = async (): Promise<{ orderId: string; upiUrl: string } | null> => {
 		if (!Object.keys(cart).length) {
 			showPrompt("Add a piece to your cart before checkout.");
 			return null;
@@ -217,11 +217,12 @@ export default function StorePage() {
 			});
 			const result = await response.json();
 			if (!response.ok) throw new Error(result.error || "Could not create pending order");
-			if (!result.orderId) throw new Error("Order ID was not returned.");
-			return String(result.orderId);
+			if (!result.orderId || typeof result.upiUrl !== "string" || !result.upiUrl.startsWith("upi://pay?")) {
+				throw new Error("The payment request could not be prepared. Please try again.");
+			}
+			return { orderId: String(result.orderId), upiUrl: result.upiUrl };
 		} catch (error) {
-			showPrompt(error instanceof Error ? error.message : "Unable to start payment.");
-			return null;
+			throw new Error(error instanceof Error ? error.message : "Unable to start payment.");
 		}
 	};
 
@@ -318,8 +319,8 @@ export default function StorePage() {
 		<a className="store-whatsapp" href="https://wa.me/919279566257" target="_blank" rel="noopener noreferrer" style={{ position: "fixed", bottom: 30, right: 30, fontSize: 30 }}>
 			💬
 		</a>
-		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key} style={{ position: "fixed", left: "50%", bottom: "calc(16px + env(safe-area-inset-bottom))", transform: "translateX(-50%)", width: "min(92vw, 380px)", background: "linear-gradient(135deg, #20152d 0%, #5f259f 100%)", color: "#fff", borderRadius: 16, boxShadow: "0 16px 40px rgba(35, 17, 51, 0.38)", zIndex: 9999, display: "flex", alignItems: "center", gap: 12, padding: "12px 16px", fontFamily: "sans-serif" }}><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" style={{ width: 48, height: 48, objectFit: "cover", borderRadius: 10, border: "1px solid rgba(255,255,255,0.25)" }} /><div style={{ flex: 1, minWidth: 0 }}><div style={{ fontSize: 12, letterSpacing: 1.2, textTransform: "uppercase", opacity: 0.8 }}>Cart update</div><div style={{ fontSize: 15, fontWeight: 700, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{cartFeedback.message}</div></div><b style={{ fontSize: 20 }}>🛍</b></div>}
-		{cartItemCount > 0 && <button className="quick-checkout-shortcut" type="button" onClick={scrollToPayment} style={{ position: "fixed", left: "50%", bottom: "calc(88px + env(safe-area-inset-bottom))", transform: "translateX(-50%)", width: "min(92vw, 420px)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16, background: "linear-gradient(135deg, #1d1d1d 0%, #343434 100%)", color: "#fff", border: "none", borderRadius: 16, boxShadow: "0 18px 38px rgba(0,0,0,0.28)", zIndex: 9998, padding: "12px 18px", fontFamily: "sans-serif" }}><span style={{ fontSize: 14, fontWeight: 600 }}>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong style={{ fontSize: 14 }}>Review cart & checkout</strong></button>}
-		{shippingPrompt && <div className="shipping-prompt" role="alert" style={{ position: "fixed", left: "50%", bottom: "calc(18px + env(safe-area-inset-bottom))", transform: "translateX(-50%)", width: "min(92vw, 420px)", background: "rgba(24, 19, 27, 0.95)", color: "#fff", borderRadius: 14, boxShadow: "0 18px 42px rgba(0,0,0,0.35)", zIndex: 10000, display: "flex", alignItems: "center", justifyContent: "space-between", gap: 12, padding: "12px 14px", fontFamily: "sans-serif" }}><div style={{ flex: 1 }}><strong style={{ display: "block", fontSize: 14 }}>Almost ready</strong><span style={{ display: "block", fontSize: 13, opacity: 0.9 }}>{shippingPrompt}</span></div><button type="button" aria-label="Dismiss message" onClick={dismissPrompt} style={{ border: "none", background: "transparent", color: "#fff", fontWeight: 700, cursor: "pointer", padding: 0 }}>Dismiss</button></div>}
+		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key} role="status"><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" /><div><small>Cart update</small><span>{cartFeedback.message}</span></div><b aria-hidden="true">🛍</b></div>}
+		{cartItemCount > 0 && <button className="quick-checkout-shortcut" type="button" onClick={scrollToPayment}><span>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong>Review cart &amp; checkout</strong></button>}
+		{shippingPrompt && <div className="shipping-prompt" role="alert"><div><strong>Almost ready</strong><span>{shippingPrompt}</span></div><button type="button" aria-label="Dismiss message" onClick={dismissPrompt}>Dismiss</button></div>}
 	</div>;
 }
