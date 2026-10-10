@@ -8,12 +8,12 @@ import { useSession } from "next-auth/react";
 import UPICheckoutButton from "@/components/UPICheckoutButton";
 
 const PRODUCTS = [
-	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "Stunning Navratri Oxidised Plated Masterpiece" },
-	{ id: 2, name: "Etnico 18k Kundan Kamarband", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "Stone Studded Waist Belly Chain for Women" },
-	{ id: 3, name: "Palak Art Austrian Stone Necklace", price: Math.round(840 * 1.4), image: "/item3.jpg", editorialImage: "/item3-alt.jpg", desc: "Heritage Pearl and Beads Festive Set" },
-	{ id: 4, name: "Maharani Oxidised Stone Jhumki", price: Math.round(218 * 1.4), image: "/item4.jpg", editorialImage: "/item4-alt.jpg", desc: "Pota Stone & Pearl Drop Earrings" },
-	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", price: Math.round(55 * 1.4), image: "/item5.jpg", editorialImage: "/item5-alt.jpg", desc: "Classic Oxidised Plated Dangler Earrings" },
-	{ id: 6, name: "Darshana Oxidised Dangler (Type B)", price: Math.round(37 * 1.4), image: "/item6.jpg", editorialImage: "/item6-alt.jpg", desc: "Lightweight Daily Wear Designer Earrings" },
+	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "Stunning Navratri Oxidised Plated Masterpiece", use: "Style at the hair parting with festive or traditional outfits.", wear: "Occasional wear · weddings, Navratri and celebrations.", quality: "Decorative damini design with an oxidised-plated finish." },
+	{ id: 2, name: "Etnico 18k Kundan Kamarband", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "Stone Studded Waist Belly Chain for Women", use: "Wear around the waist over a saree, lehenga or other occasionwear.", wear: "Occasional wear · festive events and weddings.", quality: "Kundan-style look with stone detailing; handle gently when dressing." },
+	{ id: 3, name: "Palak Art Austrian Stone Necklace", price: Math.round(840 * 1.4), image: "/item3.jpg", editorialImage: "/item3-alt.jpg", desc: "Heritage Pearl and Beads Festive Set", use: "Wear at the neckline to finish festive and dressy looks.", wear: "Occasional wear · parties, ceremonies and celebrations.", quality: "Austrian-style stones with pearl and bead accents." },
+	{ id: 4, name: "Maharani Oxidised Stone Jhumki", price: Math.round(218 * 1.4), image: "/item4.jpg", editorialImage: "/item4-alt.jpg", desc: "Pota Stone & Pearl Drop Earrings", use: "Pair with ethnic outfits; fasten gently through the ear piercing.", wear: "Occasional wear · festive days and evening events.", quality: "Oxidised-look jhumki with pota stones and pearl drops." },
+	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", price: Math.round(55 * 1.4), image: "/item5.jpg", editorialImage: "/item5-alt.jpg", desc: "Classic Oxidised Plated Dangler Earrings", use: "Add a statement finish to everyday or traditional outfits.", wear: "Regular or occasional wear · style to suit your day.", quality: "Classic dangler shape with an oxidised-plated finish." },
+	{ id: 6, name: "Darshana Oxidised Dangler (Type B)", price: Math.round(37 * 1.4), image: "/item6.jpg", editorialImage: "/item6-alt.jpg", desc: "Lightweight Daily Wear Designer Earrings", use: "A lightweight pair for everyday outfits and easy styling.", wear: "Regular wear · suitable for daily outings.", quality: "Lightweight design with an oxidised-plated finish." },
 ];
 
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
@@ -246,6 +246,11 @@ export default function StorePage() {
 			<div className="catalog-column" id="collection"><div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24 }}>{PRODUCTS.map(product => { const quantity = cart[product.id] || 0; return <div key={product.id} className="luxury-card product-card" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><ProductImage src={product.image} alt={product.name} />
 				<h3>{product.name}</h3>
 				<p>{product.desc}</p>
+				<div className="product-details">
+					<p><strong>How to wear</strong>{product.use}</p>
+					<p><strong>Wear frequency</strong>{product.wear}</p>
+					<p><strong>Finish &amp; detail</strong>{product.quality}</p>
+				</div>
 				<strong style={{ color: "#b38728" }}>₹{product.price.toLocaleString("en-IN")}</strong>
 				<p className="stock-note">{STOCK_LIMIT - quantity} available</p>
 				<div className="product-actions">
@@ -269,6 +274,14 @@ export default function StorePage() {
 					<span><strong>{product.name}</strong><small>₹{product.price.toLocaleString("en-IN")}</small></span>
 					<b aria-hidden="true">+</b>
 				</button>; })}</div>
+			</section>
+			<section className="customer-policies" id="returns" data-reveal aria-labelledby="customer-policies-title">
+				<div><p className="section-kicker">A LITTLE MORE ASSURANCE</p><h2 id="customer-policies-title">Your purchase, thoughtfully covered</h2></div>
+				<div className="policy-grid">
+					<article><h3>Custom purchase certificate</h3><p>A custom certificate identifying your purchased product will be included in the parcel with your jewellery.</p></article>
+					<article><h3>14-day return, replacement or refund</h3><p>No questions asked. Contact us within 14 days of delivery to request a return and choose a replacement or refund.</p></article>
+					<article><h3>Simple jewellery care</h3><p>Keep pieces away from water, perfume and cosmetics. Wipe gently after wear and store separately in a dry place.</p></article>
+				</div>
 			</section></div>
 			<aside className="checkout-panel" id="checkout" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 30, height: "fit-content" }}>
 				<h3>Your Cart <span className="cart-panel-count">{cartItemCount} item{cartItemCount === 1 ? "" : "s"}</span></h3>

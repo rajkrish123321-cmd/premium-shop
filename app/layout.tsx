@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AdminOverlay from "@/components/AdminOverlay";
 import { Providers } from "@/components/providers";
+import StoreFooter from "@/components/StoreFooter";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -30,6 +31,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <Providers>
           {children}
           <AdminOverlay />
+          <StoreFooter />
         </Providers>
       </body>
     </html>
