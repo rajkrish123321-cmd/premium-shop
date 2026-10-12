@@ -8,14 +8,15 @@ import { useSession } from "next-auth/react";
 import UPICheckoutButton from "@/components/UPICheckoutButton";
 
 const PRODUCTS = [
-	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "Stunning Navratri Oxidised Plated Masterpiece", use: "Style at the hair parting with festive or traditional outfits.", wear: "Occasional wear · weddings, Navratri and celebrations.", quality: "Decorative damini design with an oxidised-plated finish." },
-	{ id: 2, name: "Etnico 18k Kundan Kamarband", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "Stone Studded Waist Belly Chain for Women", use: "Wear around the waist over a saree, lehenga or other occasionwear.", wear: "Occasional wear · festive events and weddings.", quality: "Kundan-style look with stone detailing; handle gently when dressing." },
-	{ id: 3, name: "Palak Art Austrian Stone Necklace", price: Math.round(840 * 1.4), image: "/item3.jpg", editorialImage: "/item3-alt.jpg", desc: "Heritage Pearl and Beads Festive Set", use: "Wear at the neckline to finish festive and dressy looks.", wear: "Occasional wear · parties, ceremonies and celebrations.", quality: "Austrian-style stones with pearl and bead accents." },
-	{ id: 4, name: "Maharani Oxidised Stone Jhumki", price: Math.round(218 * 1.4), image: "/item4.jpg", editorialImage: "/item4-alt.jpg", desc: "Pota Stone & Pearl Drop Earrings", use: "Pair with ethnic outfits; fasten gently through the ear piercing.", wear: "Occasional wear · festive days and evening events.", quality: "Oxidised-look jhumki with pota stones and pearl drops." },
-	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", price: Math.round(55 * 1.4), image: "/item5.jpg", editorialImage: "/item5-alt.jpg", desc: "Classic Oxidised Plated Dangler Earrings", use: "Add a statement finish to everyday or traditional outfits.", wear: "Regular or occasional wear · style to suit your day.", quality: "Classic dangler shape with an oxidised-plated finish." },
-	{ id: 6, name: "Darshana Oxidised Dangler (Type B)", price: Math.round(37 * 1.4), image: "/item6.jpg", editorialImage: "/item6-alt.jpg", desc: "Lightweight Daily Wear Designer Earrings", use: "A lightweight pair for everyday outfits and easy styling.", wear: "Regular wear · suitable for daily outings.", quality: "Lightweight design with an oxidised-plated finish." },
+	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", category: "Maang Tikka", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "A traditional oxidised-finish damini maang tikka that brings graceful detail to festive and wedding hairstyles.", use: "Style along the hair parting with a saree, lehenga or other traditional outfit.", wear: "Occasional wear · weddings, Navratri and celebrations.", quality: "Decorative damini design with an oxidised-plated finish." },
+	{ id: 2, name: "Etnico 18k Kundan Kamarband", category: "Waist Chains", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "Accentuate your waistline with a gold-tone kamarband featuring sparkling crystal-style stones and pearl-look accents. Its delicate 28-inch chain and 12-inch adjustable extension bring an elegant finish to sarees, lehengas and contemporary occasionwear.", use: "Wear around the waist over a saree, lehenga or other occasionwear; adjust the extension for a comfortable fit.", wear: "Occasional wear · festive events, weddings and evening celebrations.", quality: "Gold-tone chain with stone and pearl-look detailing; handle gently when dressing." },
+	{ id: 3, name: "Palak Art Austrian Stone Necklace", category: "Necklaces", price: Math.round(840 * 1.4), image: "/item3.jpg", editorialImage: "/item3-alt.jpg", desc: "A statement necklace combining Austrian-style stones with pearl and bead accents for a graceful, heritage-inspired look.", use: "Wear at the neckline to finish festive outfits, party looks and special-occasion styles.", wear: "Occasional wear · parties, ceremonies and celebrations.", quality: "Austrian-style stones with pearl and bead accents." },
+	{ id: 4, name: "Maharani Oxidised Stone Jhumki", category: "Jhumki Earrings", price: Math.round(218 * 1.4), image: "/item4.jpg", editorialImage: "/item4-alt.jpg", desc: "Oxidised-look jhumki earrings with pota stone detailing and pearl drops for a classic statement with ethnic outfits.", use: "Pair with ethnic outfits; fasten gently through the ear piercing.", wear: "Occasional wear · festive days and evening events.", quality: "Oxidised-look jhumki with pota stones and pearl drops." },
+	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", category: "Dangler Earrings", price: Math.round(55 * 1.4), image: "/item5.jpg", editorialImage: "/item5-alt.jpg", desc: "Classic oxidised-finish dangler earrings that add a distinctive touch to everyday outfits and traditional looks.", use: "Add a statement finish to everyday outfits, kurtas or traditional occasionwear.", wear: "Regular or occasional wear · style to suit your day.", quality: "Classic dangler shape with an oxidised-plated finish." },
+	{ id: 6, name: "Darshana Oxidised Dangler (Type B)", category: "Dangler Earrings", price: Math.round(37 * 1.4), image: "/item6.jpg", editorialImage: "/item6-alt.jpg", desc: "Lightweight oxidised-look danglers designed for easy daily styling, from casual outings to relaxed festive moments.", use: "A lightweight pair for everyday outfits and easy styling.", wear: "Regular wear · suitable for daily outings.", quality: "Lightweight design with an oxidised-plated finish." },
 ];
 
+const PRODUCT_CATEGORIES = ["All pieces", ...new Set(PRODUCTS.map(product => product.category))];
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
 const STOCK_LIMIT = 30;
 const CART_STORAGE_KEY = "trendy-jewellery-cart-v1";
@@ -93,10 +94,12 @@ export default function StorePage() {
 	const [pincode, setPincode] = useState("");
 	const [cartFeedback, setCartFeedback] = useState<{ id: number; message: string; key: number } | null>(null);
 	const [shippingPrompt, setShippingPrompt] = useState("");
+	const [activeCategory, setActiveCategory] = useState("All pieces");
 	const promptTimer = useRef<number | null>(null);
 	const feedbackTimer = useRef<number | null>(null);
 	const displayName = session?.user?.name?.trim() || session?.user?.email?.split("@")[0] || "Guest";
 	const initials = displayName.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
+	const visibleProducts = activeCategory === "All pieces" ? PRODUCTS : PRODUCTS.filter(product => product.category === activeCategory);
 
 	useEffect(() => {
 		const revealObserver = new IntersectionObserver(entries => {
@@ -109,7 +112,7 @@ export default function StorePage() {
 		}, { threshold: 0.12, rootMargin: "0px 0px -36px 0px" });
 		document.querySelectorAll("[data-reveal]").forEach(element => revealObserver.observe(element));
 		return () => revealObserver.disconnect();
-	}, []);
+	}, [activeCategory]);
 
 	const showPrompt = (message: string) => {
 		setShippingPrompt(message);
@@ -243,7 +246,16 @@ export default function StorePage() {
 			<div className="hero-art" aria-hidden="true"><img src="/item3.jpg" alt="" /></div>
 		</section>
 		<main style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(300px, 1fr)", gap: 40, alignItems: "start" }}>
-			<div className="catalog-column" id="collection"><div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24 }}>{PRODUCTS.map(product => { const quantity = cart[product.id] || 0; return <div key={product.id} className="luxury-card product-card" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><ProductImage src={product.image} alt={product.name} />
+			<div className="catalog-column" id="collection">
+				<div className="collection-toolbar">
+					<div><p className="section-kicker">SHOP BY STYLE</p><h2>Find your finishing touch</h2></div>
+					<span className="collection-count">{visibleProducts.length} {visibleProducts.length === 1 ? "piece" : "pieces"}</span>
+				</div>
+				<div className="category-filters" role="group" aria-label="Filter products by category">
+					{PRODUCT_CATEGORIES.map(category => <button key={category} type="button" className={`category-chip${activeCategory === category ? " is-active" : ""}`} aria-pressed={activeCategory === category} onClick={() => setActiveCategory(category)}>{category}</button>)}
+				</div>
+				<div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24 }}>{visibleProducts.map(product => { const quantity = cart[product.id] || 0; return <div key={product.id} className="luxury-card product-card" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><ProductImage src={product.image} alt={product.name} />
+				<span className="product-category">{product.category}</span>
 				<h3>{product.name}</h3>
 				<p>{product.desc}</p>
 				<div className="product-details">

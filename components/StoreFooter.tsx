@@ -17,6 +17,8 @@ export default function StoreFooter() {
 				<p className="footer-kicker">TRENDY JEWELLERY</p>
 				<h2 id="footer-business-title">Business information</h2>
 				<p><strong>Udyam Registration</strong><span>UDAYM-JH-01-0066016</span></p>
+				<p><strong>Ownership</strong><span>KRISH RAJ</span></p>
+				<p><strong>Address</strong><span>CHAS, BOKARO, Jharkhand, 827013</span></p>
 				<a href="mailto:trendyjewellery62@gmail.com">trendyjewellery62@gmail.com</a>
 				<a href="tel:+919279566257">+91 92795 66257</a>
 				<div className="footer-socials" aria-label="Social media">
