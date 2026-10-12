@@ -7,9 +7,24 @@ import { useSession } from "next-auth/react";
 
 import UPICheckoutButton from "@/components/UPICheckoutButton";
 
-const PRODUCTS = [
+type ProductSpecification = { label: string; value: string };
+type Product = {
+	id: number;
+	name: string;
+	category: string;
+	price: number;
+	image: string;
+	editorialImage: string;
+	desc: string;
+	use: string;
+	wear: string;
+	quality: string;
+	specifications?: ProductSpecification[];
+};
+
+const PRODUCTS: Product[] = [
 	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", category: "Maang Tikka", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "A traditional oxidised-finish damini maang tikka that brings graceful detail to festive and wedding hairstyles.", use: "Style along the hair parting with a saree, lehenga or other traditional outfit.", wear: "Occasional wear · weddings, Navratri and celebrations.", quality: "Decorative damini design with an oxidised-plated finish." },
-	{ id: 2, name: "Etnico 18k Kundan Kamarband", category: "Waist Chains", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "Accentuate your waistline with a gold-tone kamarband featuring sparkling crystal-style stones and pearl-look accents. Its delicate 28-inch chain and 12-inch adjustable extension bring an elegant finish to sarees, lehengas and contemporary occasionwear.", use: "Wear around the waist over a saree, lehenga or other occasionwear; adjust the extension for a comfortable fit.", wear: "Occasional wear · festive events, weddings and evening celebrations.", quality: "Gold-tone chain with stone and pearl-look detailing; handle gently when dressing." },
+	{ id: 2, name: "Etnico Kundan Kamarband", category: "Waist Chains", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "Add a royal touch to your ethnic ensemble with this exquisite Kundan kamarband (waist chain). Crafted with intricate detailing, sparkling stone embellishments and delicate hanging pearl drops, it is designed to highlight your waistline effortlessly.", use: "Wear around the waist over a saree, lehenga or bridal outfit; adjust the hook and chain for a comfortable fit.", wear: "Ideal for weddings, festive celebrations, grand functions and bridal wear.", quality: "Traditional royal Kundan work with intricate floral and geometric motifs.", specifications: [{ label: "Design", value: "Traditional royal Kundan work with intricate floral and geometric motifs." }, { label: "Material", value: "High-quality alloy base with premium gold-tone plating." }, { label: "Embellishments", value: "Sparkling Kundan stones with faux pearl and bead drops." }, { label: "Closure", value: "Adjustable hook and chain for a comfortable fit." }, { label: "Occasion", value: "Weddings, festive celebrations, grand functions and bridal wear." }] },
 	{ id: 3, name: "Palak Art Austrian Stone Necklace", category: "Necklaces", price: Math.round(840 * 1.4), image: "/item3.jpg", editorialImage: "/item3-alt.jpg", desc: "A statement necklace combining Austrian-style stones with pearl and bead accents for a graceful, heritage-inspired look.", use: "Wear at the neckline to finish festive outfits, party looks and special-occasion styles.", wear: "Occasional wear · parties, ceremonies and celebrations.", quality: "Austrian-style stones with pearl and bead accents." },
 	{ id: 4, name: "Maharani Oxidised Stone Jhumki", category: "Jhumki Earrings", price: Math.round(218 * 1.4), image: "/item4.jpg", editorialImage: "/item4-alt.jpg", desc: "Oxidised-look jhumki earrings with pota stone detailing and pearl drops for a classic statement with ethnic outfits.", use: "Pair with ethnic outfits; fasten gently through the ear piercing.", wear: "Occasional wear · festive days and evening events.", quality: "Oxidised-look jhumki with pota stones and pearl drops." },
 	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", category: "Dangler Earrings", price: Math.round(55 * 1.4), image: "/item5.jpg", editorialImage: "/item5-alt.jpg", desc: "Classic oxidised-finish dangler earrings that add a distinctive touch to everyday outfits and traditional looks.", use: "Add a statement finish to everyday outfits, kurtas or traditional occasionwear.", wear: "Regular or occasional wear · style to suit your day.", quality: "Classic dangler shape with an oxidised-plated finish." },
@@ -259,9 +274,11 @@ export default function StorePage() {
 				<h3>{product.name}</h3>
 				<p>{product.desc}</p>
 				<div className="product-details">
-					<p><strong>How to wear</strong>{product.use}</p>
-					<p><strong>Wear frequency</strong>{product.wear}</p>
-					<p><strong>Finish &amp; detail</strong>{product.quality}</p>
+					{product.specifications ? product.specifications.map(specification => <p key={specification.label}><strong>{specification.label}</strong>{specification.value}</p>) : <>
+						<p><strong>How to wear</strong>{product.use}</p>
+						<p><strong>Wear frequency</strong>{product.wear}</p>
+						<p><strong>Finish &amp; detail</strong>{product.quality}</p>
+					</>}
 				</div>
 				<strong style={{ color: "#b38728" }}>₹{product.price.toLocaleString("en-IN")}</strong>
 				<p className="stock-note">{STOCK_LIMIT - quantity} available</p>

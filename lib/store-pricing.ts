@@ -1,6 +1,6 @@
 const PRODUCTS: Record<string, { name: string; price: number }> = {
   "1": { name: "Akruti Oxidised Damini Maangtikka", price: 599 },
-  "2": { name: "Etnico 18k Kundan Kamarband", price: 426 },
+  "2": { name: "Etnico Kundan Kamarband", price: 426 },
   "3": { name: "Palak Art Austrian Stone Necklace", price: 1176 },
   "4": { name: "Maharani Oxidised Stone Jhumki", price: 305 },
   "5": { name: "Darshana Oxidised Dangler (Type A)", price: 77 },
