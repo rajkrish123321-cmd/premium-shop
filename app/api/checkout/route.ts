@@ -49,10 +49,13 @@ export async function POST(request: Request) {
     const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin;
     const redirectUrl = new URL("/checkout/callback", baseUrl);
     redirectUrl.searchParams.set("orderId", pendingOrder.id);
+    const callbackUrl = new URL("/api/checkout/phonepe-callback", baseUrl).toString();
     const paymentUrl = await createPhonePePayment({
 			orderId: pendingOrder.id,
 			amount: pricing.total,
 			redirectUrl: redirectUrl.toString(),
+      callbackUrl,
+      phone,
 		});
 
     return NextResponse.json({
