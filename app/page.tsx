@@ -207,7 +207,7 @@ export default function StorePage() {
 	}, 0);
 	const igst = Math.round(subtotal * 0.03);
 	const total = subtotal + igst;
-	const createPendingUPIOrder = async (): Promise<{ orderId: string; upiUrl: string } | null> => {
+	const createPendingPhonePeOrder = async (): Promise<{ orderId: string; paymentUrl: string } | null> => {
 		if (!Object.keys(cart).length) {
 			showPrompt("Add a piece to your cart before checkout.");
 			return null;
@@ -235,10 +235,10 @@ export default function StorePage() {
 			});
 			const result = await response.json();
 			if (!response.ok) throw new Error(result.error || "Could not create pending order");
-			if (!result.orderId || typeof result.upiUrl !== "string" || !result.upiUrl.startsWith("upi://pay?")) {
+			if (!result.orderId || typeof result.paymentUrl !== "string" || !result.paymentUrl.startsWith("https://")) {
 				throw new Error("The payment request could not be prepared. Please try again.");
 			}
-			return { orderId: String(result.orderId), upiUrl: result.upiUrl };
+			return { orderId: String(result.orderId), paymentUrl: result.paymentUrl };
 		} catch (error) {
 			throw new Error(error instanceof Error ? error.message : "Unable to start payment.");
 		}
@@ -354,7 +354,7 @@ export default function StorePage() {
 							Clear cart
 						</button>
 					)}
-					<UPICheckoutButton amount={total} onPaymentInitiated={createPendingUPIOrder} />
+					<UPICheckoutButton amount={total} onPaymentInitiated={createPendingPhonePeOrder} />
 				</div>
 			</aside>
 		</main>

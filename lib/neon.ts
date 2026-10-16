@@ -121,6 +121,43 @@ export async function updateOrderPaymentStatus(
   return rows[0] as { id: string; payment_status: string; status: string } | undefined;
 }
 
+export async function confirmPaidOrder(orderId: string) {
+  requireDatabase();
+  const updated = await sql`
+    update orders
+    set payment_status = 'paid', status = 'paid'
+    where id = ${orderId}::uuid and payment_status <> 'paid'
+    returning id::text, customer_name, customer_email, cart_items, total_amount, created_at
+  `;
+  if (updated[0]) {
+    return { ...(updated[0] as OrderReceipt), newlyPaid: true };
+  }
+
+  const existing = await sql`
+    select id::text, customer_name, customer_email, cart_items, total_amount, created_at
+    from orders where id = ${orderId}::uuid and payment_status = 'paid'
+  `;
+  return existing[0] ? { ...(existing[0] as OrderReceipt), newlyPaid: false } : null;
+}
+
+export async function getOrderPayment(orderId: string) {
+  requireDatabase();
+  const rows = await sql`
+    select id::text, payment_status, total_amount
+    from orders where id = ${orderId}::uuid limit 1
+  `;
+  return rows[0] as { id: string; payment_status: string; total_amount: number } | undefined;
+}
+
+type OrderReceipt = {
+  id: string;
+  customer_name: string;
+  customer_email: string;
+  cart_items: Record<string, number>;
+  total_amount: number;
+  created_at: string;
+};
+
 export async function updateOrderRefundFlag(orderId: string, flaggedForRefund: boolean) {
   requireDatabase();
   const rows = await sql`

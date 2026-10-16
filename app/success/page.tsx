@@ -1,42 +1,96 @@
 "use client";
 
-import { Suspense } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
 
+type Receipt = {
+	orderId: string;
+	customerName: string;
+	customerEmail: string;
+	createdAt: string;
+	amount: number;
+	items: Array<{ id: string; name: string; unitPrice: number; quantity: number; lineTotal: number }>;
+};
+
 function SuccessContent() {
 	const searchParams = useSearchParams();
-	const orderId = searchParams.get("order_id") || "Pending";
-	const receiptStatus = searchParams.get("receipt") || "unknown";
-	const receiptMessage = receiptStatus === "sent"
-		? "Your itemized receipt was accepted for delivery to your email and Trendy Jewellery."
-		: receiptStatus === "sender_not_configured"
-			? "Your payment is confirmed, but receipt email is not configured for live delivery. The store must set RESEND_FROM_EMAIL to an address on a verified sending domain. Do not pay again."
-			: "Your payment is confirmed. Receipt delivery was not accepted by the email provider. Keep this order ID and contact Trendy Jewellery if you need the receipt resent. Do not pay again.";
+	const orderId = searchParams.get("order_id") || "";
+	const [paymentStatus, setPaymentStatus] = useState<"checking" | "pending" | "paid" | "failed" | "error">("checking");
+	const [receipt, setReceipt] = useState<Receipt | null>(null);
+	const [receiptStatus, setReceiptStatus] = useState("");
+	const [errorMessage, setErrorMessage] = useState("");
 
-	return (
-		<main className="success-page">
-			<section className="success-card" aria-live="polite">
-				<div className="success-mark" aria-hidden="true">✓</div>
-				<p className="success-eyebrow">Payment successful</p>
-				<h1>Your order is placed</h1>
-				<p className="success-copy">Thank you for shopping with Trendy Jewellery. We have received your order and shipping details.</p>
-				<div className="order-id-box">
-					<span>Order ID</span>
-					<strong>{orderId}</strong>
-				</div>
-				<p className={`receipt-status ${receiptStatus === "sent" ? "receipt-status-sent" : "receipt-status-pending"}`}>{receiptMessage}</p>
-				<p className="manual-shipping-note">Our team will arrange DTDC shipping manually and share tracking details after dispatch.</p>
-				<Link className="success-button" href="/">Continue shopping</Link>
-			</section>
-		</main>
-	);
+	useEffect(() => {
+		if (!orderId) return;
+
+		let active = true;
+		let attempts = 0;
+		let timer: ReturnType<typeof setTimeout>;
+		const checkPayment = async () => {
+			try {
+				const response = await fetch(`/api/checkout/status?orderId=${encodeURIComponent(orderId)}`, { cache: "no-store" });
+				const result = await response.json();
+				if (!response.ok) throw new Error(result.error || "Unable to confirm payment yet.");
+				if (!active) return;
+				setPaymentStatus(result.paymentStatus);
+				if (result.paymentStatus === "paid") {
+					setReceipt(result.receipt);
+					setReceiptStatus(result.receiptStatus);
+					return;
+				}
+				setErrorMessage("");
+			} catch (error) {
+				if (!active) return;
+				setPaymentStatus("error");
+				setErrorMessage(error instanceof Error ? error.message : "Unable to confirm payment yet.");
+			}
+
+			attempts += 1;
+			if (active && attempts < 60) timer = setTimeout(checkPayment, 2500);
+		};
+
+		void checkPayment();
+		return () => {
+			active = false;
+			clearTimeout(timer);
+		};
+	}, [orderId]);
+
+	const visiblePaymentStatus = orderId ? paymentStatus : "error";
+	const visibleErrorMessage = orderId ? errorMessage : "No order reference was provided. Check your order history or contact the store.";
+
+	if (visiblePaymentStatus === "paid" && receipt) {
+		const emailMessage = receiptStatus === "sent" || receiptStatus === "already_sent"
+			? `A copy was sent to ${receipt.customerEmail}.`
+			: receiptStatus === "sender_not_configured"
+				? "Your payment is confirmed. Email receipts are not configured, so this on-page receipt is ready to print."
+				: "Your payment is confirmed. Email delivery was not accepted, but this on-page receipt is ready to print.";
+		return <main className="success-page"><section className="success-card receipt-card" aria-live="polite">
+			<div className="success-mark" aria-hidden="true">✓</div>
+			<p className="success-eyebrow">Payment successful</p>
+			<h1>Thank you, {receipt.customerName}</h1>
+			<p className="success-copy">Your order is confirmed. We will arrange shipping and share tracking details after dispatch.</p>
+			<div className="order-id-box"><span>Order ID</span><strong>{receipt.orderId}</strong></div>
+			<div className="receipt-details"><div><span>Paid to</span><strong>Trendy Jewellery</strong></div><div><span>Date</span><strong>{new Date(receipt.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong></div><div><span>Payment</span><strong>PhonePe · Confirmed</strong></div></div>
+			<div className="receipt-items"><h2>Order receipt</h2>{receipt.items.map(item => <div className="receipt-item" key={item.id}><span>{item.name}<small>₹{item.unitPrice.toLocaleString("en-IN")} × {item.quantity}</small></span><strong>₹{item.lineTotal.toLocaleString("en-IN")}</strong></div>)}<div className="receipt-total"><span>Total paid</span><strong>₹{receipt.amount.toLocaleString("en-IN")}</strong></div></div>
+			<p className={`receipt-status ${receiptStatus === "sent" || receiptStatus === "already_sent" ? "receipt-status-sent" : "receipt-status-pending"}`}>{emailMessage}</p>
+			<div className="receipt-actions"><button className="success-button" type="button" onClick={() => window.print()}>Print receipt</button><Link className="success-button" href="/">Continue shopping</Link></div>
+		</section></main>;
+	}
+
+	const failed = visiblePaymentStatus === "failed";
+	return <main className="success-page"><section className="success-card" aria-live="polite">
+		<div className={`success-mark${failed ? " success-mark-failed" : ""}`} aria-hidden="true">{failed ? "!" : "…"}</div>
+		<p className="success-eyebrow">{failed ? "Payment not completed" : visiblePaymentStatus === "checking" ? "Confirming payment" : "Payment processing"}</p>
+		<h1>{failed ? "Your order is not paid" : visiblePaymentStatus === "checking" ? "Checking with PhonePe" : "Waiting for confirmation"}</h1>
+		<p className="success-copy">{failed ? "PhonePe reports this payment did not complete. You can return to the store and try checkout again." : visibleErrorMessage || "We are checking the payment directly with PhonePe. Please keep this page open; your order will not be marked paid until confirmation arrives."}</p>
+		{orderId && <div className="order-id-box"><span>Order ID</span><strong>{orderId}</strong></div>}
+		{visiblePaymentStatus === "error" && <button className="success-button" type="button" onClick={() => window.location.reload()}>Check again</button>}
+		<Link className="success-button" href="/">Return to store</Link>
+	</section></main>;
 }
 
 export default function SuccessPage() {
-	return (
-		<Suspense fallback={<main className="success-page"><section className="success-card"><p className="success-eyebrow">Confirming your order</p><h1>Please wait...</h1></section></main>}>
-			<SuccessContent />
-		</Suspense>
-	);
+	return <Suspense fallback={<main className="success-page"><section className="success-card"><p className="success-eyebrow">Confirming your order</p><h1>Please wait...</h1></section></main>}><SuccessContent /></Suspense>;
 }
