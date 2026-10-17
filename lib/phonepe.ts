@@ -36,6 +36,11 @@ async function getAccessToken() {
 		client_secret: config.clientSecret,
 		grant_type: "client_credentials",
 	});
+	console.log("PhonePe OAuth request configuration:", {
+		url: config.authUrl,
+		clientId: config.clientId,
+		clientVersion: config.clientVersion,
+	});
 	const response = await fetch(config.authUrl, {
 		method: "POST",
 		headers: { "Content-Type": "application/x-www-form-urlencoded" },
