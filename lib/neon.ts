@@ -127,14 +127,14 @@ export async function confirmPaidOrder(orderId: string) {
     update orders
     set payment_status = 'paid', status = 'paid'
     where id = ${orderId}::uuid and payment_status <> 'paid'
-    returning id::text, customer_name, customer_email, cart_items, total_amount, created_at
+    returning id::text, customer_name, customer_phone, customer_email, shipping_address, pincode, cart_items, total_amount, created_at
   `;
   if (updated[0]) {
     return { ...(updated[0] as OrderReceipt), newlyPaid: true };
   }
 
   const existing = await sql`
-    select id::text, customer_name, customer_email, cart_items, total_amount, created_at
+    select id::text, customer_name, customer_phone, customer_email, shipping_address, pincode, cart_items, total_amount, created_at
     from orders where id = ${orderId}::uuid and payment_status = 'paid'
   `;
   return existing[0] ? { ...(existing[0] as OrderReceipt), newlyPaid: false } : null;
@@ -152,7 +152,10 @@ export async function getOrderPayment(orderId: string) {
 type OrderReceipt = {
   id: string;
   customer_name: string;
+  customer_phone: string;
   customer_email: string;
+  shipping_address: string;
+  pincode: string;
   cart_items: Record<string, number>;
   total_amount: number;
   created_at: string;

@@ -3,6 +3,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 type Receipt = {
 	orderId: string;
@@ -10,7 +11,7 @@ type Receipt = {
 	customerEmail: string;
 	createdAt: string;
 	amount: number;
-	items: Array<{ id: string; name: string; unitPrice: number; quantity: number; lineTotal: number }>;
+	items: Array<{ id: string; name: string; image: string; unitPrice: number; quantity: number; lineTotal: number }>;
 };
 
 function SuccessContent() {
@@ -73,7 +74,7 @@ function SuccessContent() {
 			<p className="success-copy">Your order is confirmed. We will arrange shipping and share tracking details after dispatch.</p>
 			<div className="order-id-box"><span>Order ID</span><strong>{receipt.orderId}</strong></div>
 			<div className="receipt-details"><div><span>Paid to</span><strong>Trendy Jewellery</strong></div><div><span>Date</span><strong>{new Date(receipt.createdAt).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</strong></div><div><span>Payment</span><strong>PhonePe · Confirmed</strong></div></div>
-			<div className="receipt-items"><h2>Order receipt</h2>{receipt.items.map(item => <div className="receipt-item" key={item.id}><span>{item.name}<small>₹{item.unitPrice.toLocaleString("en-IN")} × {item.quantity}</small></span><strong>₹{item.lineTotal.toLocaleString("en-IN")}</strong></div>)}<div className="receipt-total"><span>Total paid</span><strong>₹{receipt.amount.toLocaleString("en-IN")}</strong></div></div>
+			<div className="receipt-items"><h2>Order receipt</h2>{receipt.items.map(item => <div className="receipt-item" key={item.id}><Image src={item.image} alt={item.name} width={52} height={52} /><span>{item.name}<small>₹{item.unitPrice.toLocaleString("en-IN")} × {item.quantity}</small></span><strong>₹{item.lineTotal.toLocaleString("en-IN")}</strong></div>)}<div className="receipt-total"><span>Total paid</span><strong>₹{receipt.amount.toLocaleString("en-IN")}</strong></div></div>
 			<p className={`receipt-status ${receiptStatus === "sent" || receiptStatus === "already_sent" ? "receipt-status-sent" : "receipt-status-pending"}`}>{emailMessage}</p>
 			<div className="receipt-actions"><button className="success-button" type="button" onClick={() => window.print()}>Print receipt</button><Link className="success-button" href="/">Continue shopping</Link></div>
 		</section></main>;

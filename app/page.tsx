@@ -12,6 +12,7 @@ type Product = {
 	id: number;
 	name: string;
 	category: string;
+	finish: string;
 	price: number;
 	image: string;
 	editorialImage: string;
@@ -23,15 +24,16 @@ type Product = {
 };
 
 const PRODUCTS: Product[] = [
-	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", category: "Maang Tikka", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "A traditional oxidised-finish damini maang tikka that brings graceful detail to festive and wedding hairstyles.", use: "Style along the hair parting with a saree, lehenga or other traditional outfit.", wear: "Occasional wear · weddings, Navratri and celebrations.", quality: "Decorative damini design with an oxidised-plated finish." },
-	{ id: 2, name: "Etnico Kundan Kamarband", category: "Waist Chains", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "Add a royal touch to your ethnic ensemble with this exquisite Kundan kamarband (waist chain). Crafted with intricate detailing, sparkling stone embellishments and delicate hanging pearl drops, it is designed to highlight your waistline effortlessly.", use: "Wear around the waist over a saree, lehenga or bridal outfit; adjust the hook and chain for a comfortable fit.", wear: "Ideal for weddings, festive celebrations, grand functions and bridal wear.", quality: "Traditional royal Kundan work with intricate floral and geometric motifs.", specifications: [{ label: "Design", value: "Traditional royal Kundan work with intricate floral and geometric motifs." }, { label: "Material", value: "High-quality alloy base with premium gold-tone plating." }, { label: "Embellishments", value: "Sparkling Kundan stones with faux pearl and bead drops." }, { label: "Closure", value: "Adjustable hook and chain for a comfortable fit." }, { label: "Occasion", value: "Weddings, festive celebrations, grand functions and bridal wear." }] },
-	{ id: 3, name: "Palak Art Austrian Stone Necklace", category: "Necklaces", price: Math.round(840 * 1.4), image: "/item3.jpg", editorialImage: "/item3-alt.jpg", desc: "A statement necklace combining Austrian-style stones with pearl and bead accents for a graceful, heritage-inspired look.", use: "Wear at the neckline to finish festive outfits, party looks and special-occasion styles.", wear: "Occasional wear · parties, ceremonies and celebrations.", quality: "Austrian-style stones with pearl and bead accents." },
-	{ id: 4, name: "Maharani Oxidised Stone Jhumki", category: "Jhumki Earrings", price: Math.round(218 * 1.4), image: "/item4.jpg", editorialImage: "/item4-alt.jpg", desc: "Oxidised-look jhumki earrings with pota stone detailing and pearl drops for a classic statement with ethnic outfits.", use: "Pair with ethnic outfits; fasten gently through the ear piercing.", wear: "Occasional wear · festive days and evening events.", quality: "Oxidised-look jhumki with pota stones and pearl drops." },
-	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", category: "Dangler Earrings", price: Math.round(55 * 1.4), image: "/item5.jpg", editorialImage: "/item5-alt.jpg", desc: "Classic oxidised-finish dangler earrings that add a distinctive touch to everyday outfits and traditional looks.", use: "Add a statement finish to everyday outfits, kurtas or traditional occasionwear.", wear: "Regular or occasional wear · style to suit your day.", quality: "Classic dangler shape with an oxidised-plated finish." },
-	{ id: 6, name: "Darshana Oxidised Dangler (Type B)", category: "Dangler Earrings", price: Math.round(37 * 1.4), image: "/item6.jpg", editorialImage: "/item6-alt.jpg", desc: "Lightweight oxidised-look danglers designed for easy daily styling, from casual outings to relaxed festive moments.", use: "A lightweight pair for everyday outfits and easy styling.", wear: "Regular wear · suitable for daily outings.", quality: "Lightweight design with an oxidised-plated finish." },
+	{ id: 1, name: "Akruti Oxidised Damini Maangtikka", category: "Maang Tikka", finish: "Oxidised", price: Math.round(428 * 1.4), image: "/item1.jpg", editorialImage: "/item1-alt.jpg", desc: "A traditional oxidised-finish damini maang tikka that brings graceful detail to festive and wedding hairstyles.", use: "Style along the hair parting with a saree, lehenga or other traditional outfit.", wear: "Occasional wear · weddings, Navratri and celebrations.", quality: "Decorative damini design with an oxidised-plated finish." },
+	{ id: 2, name: "Etnico Kundan Kamarband", category: "Waist Chains", finish: "Kundan", price: Math.round(304 * 1.4), image: "/item2.jpg", editorialImage: "/item2-alt.jpg", desc: "A Kundan waist chain with pearl drops for wedding and festive looks.", use: "Wear around the waist over a saree, lehenga or bridal outfit; adjust the hook and chain for a comfortable fit.", wear: "Ideal for weddings, festive celebrations, grand functions and bridal wear.", quality: "Traditional royal Kundan work with intricate floral and geometric motifs.", specifications: [{ label: "Design", value: "Traditional royal Kundan work with intricate floral and geometric motifs." }, { label: "Material", value: "High-quality alloy base with premium gold-tone plating." }, { label: "Embellishments", value: "Sparkling Kundan stones with faux pearl and bead drops." }, { label: "Closure", value: "Adjustable hook and chain for a comfortable fit." }, { label: "Occasion", value: "Weddings, festive celebrations, grand functions and bridal wear." }] },
+	{ id: 3, name: "Palak Art Austrian Stone Necklace", category: "Necklaces", finish: "Stone", price: Math.round(840 * 1.4), image: "/item3.jpg", editorialImage: "/item3-alt.jpg", desc: "A statement necklace with Austrian-style stones, pearls and bead accents.", use: "Wear at the neckline to finish festive outfits, party looks and special-occasion styles.", wear: "Occasional wear · parties, ceremonies and celebrations.", quality: "Austrian-style stones with pearl and bead accents." },
+	{ id: 4, name: "Maharani Oxidised Stone Jhumki", category: "Jhumki Earrings", finish: "Oxidised", price: Math.round(218 * 1.4), image: "/item4.jpg", editorialImage: "/item4-alt.jpg", desc: "Oxidised-look jhumkis with pota stones and pearl drops.", use: "Pair with ethnic outfits; fasten gently through the ear piercing.", wear: "Occasional wear · festive days and evening events.", quality: "Oxidised-look jhumki with pota stones and pearl drops." },
+	{ id: 5, name: "Darshana Oxidised Dangler (Type A)", category: "Dangler Earrings", finish: "Oxidised", price: Math.round(55 * 1.4), image: "/item5.jpg", editorialImage: "/item5-alt.jpg", desc: "Classic oxidised-finish danglers for everyday and traditional looks.", use: "Add a statement finish to everyday outfits, kurtas or traditional occasionwear.", wear: "Regular or occasional wear · style to suit your day.", quality: "Classic dangler shape with an oxidised-plated finish." },
+	{ id: 6, name: "Darshana Oxidised Dangler (Type B)", category: "Dangler Earrings", finish: "Oxidised", price: Math.round(37 * 1.4), image: "/item6.jpg", editorialImage: "/item6-alt.jpg", desc: "Lightweight oxidised-look danglers for easy daily styling.", use: "A lightweight pair for everyday outfits and easy styling.", wear: "Regular wear · suitable for daily outings.", quality: "Lightweight design with an oxidised-plated finish." },
 ];
 
-const PRODUCT_CATEGORIES = ["All pieces", ...new Set(PRODUCTS.map(product => product.category))];
+const PRODUCT_CATEGORIES = ["All pieces", "Maang Tikka", "Earrings", "Necklaces", "Other"];
+const PRODUCT_FINISHES = ["All finishes", "Oxidised", "Kundan", "Stone"];
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
 const STOCK_LIMIT = 30;
 const CART_STORAGE_KEY = "trendy-jewellery-cart-v1";
@@ -64,32 +66,6 @@ const subscribeToCart = (listener: () => void) => {
 const getCartSnapshot = () => JSON.stringify(readStoredCart());
 const getServerCartSnapshot = () => "{}";
 
-function ProductImage({ src, alt }: { src: string; alt: string }) {
-	const [isZoomed, setIsZoomed] = useState(false);
-	const moveZoom = (event: React.PointerEvent<HTMLButtonElement>) => {
-		const bounds = event.currentTarget.getBoundingClientRect();
-		const x = ((event.clientX - bounds.left) / bounds.width) * 100;
-		const y = ((event.clientY - bounds.top) / bounds.height) * 100;
-		event.currentTarget.style.setProperty("--zoom-x", `${x}%`);
-		event.currentTarget.style.setProperty("--zoom-y", `${y}%`);
-	};
-
-	return <button
-		className={`product-visual${isZoomed ? " is-zoomed" : ""}`}
-		type="button"
-		aria-label={`${isZoomed ? "Zoom out from" : "Zoom in on"} ${alt}`}
-		aria-pressed={isZoomed}
-		onPointerMove={moveZoom}
-		onPointerLeave={event => {
-			if (event.pointerType === "mouse") setIsZoomed(false);
-		}}
-		onClick={() => setIsZoomed(value => !value)}
-	>
-		<img src={src} alt={alt} />
-		<span className="product-zoom-hint" aria-hidden="true">{isZoomed ? "Tap to close" : "View detail"}</span>
-	</button>;
-}
-
 export default function StorePage() {
 	const { data: session } = useSession();
 	const cartSnapshot = useSyncExternalStore(subscribeToCart, getCartSnapshot, getServerCartSnapshot);
@@ -110,11 +86,19 @@ export default function StorePage() {
 	const [cartFeedback, setCartFeedback] = useState<{ id: number; message: string; key: number } | null>(null);
 	const [shippingPrompt, setShippingPrompt] = useState("");
 	const [activeCategory, setActiveCategory] = useState("All pieces");
+	const [activeFinish, setActiveFinish] = useState("All finishes");
+	const [maxPrice, setMaxPrice] = useState(1200);
+	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 	const promptTimer = useRef<number | null>(null);
 	const feedbackTimer = useRef<number | null>(null);
 	const displayName = session?.user?.name?.trim() || session?.user?.email?.split("@")[0] || "Guest";
 	const initials = displayName.split(/\s+/).map(part => part[0]).join("").slice(0, 2).toUpperCase();
-	const visibleProducts = activeCategory === "All pieces" ? PRODUCTS : PRODUCTS.filter(product => product.category === activeCategory);
+	const categoryFor = (product: Product) => product.category.includes("Earrings") ? "Earrings" : product.category === "Necklaces" ? "Necklaces" : product.category === "Maang Tikka" ? "Maang Tikka" : "Other";
+	const visibleProducts = PRODUCTS.filter(product =>
+		(activeCategory === "All pieces" || categoryFor(product) === activeCategory) &&
+		(activeFinish === "All finishes" || product.finish === activeFinish) &&
+		product.price <= maxPrice,
+	);
 
 	useEffect(() => {
 		const revealObserver = new IntersectionObserver(entries => {
@@ -127,7 +111,16 @@ export default function StorePage() {
 		}, { threshold: 0.12, rootMargin: "0px 0px -36px 0px" });
 		document.querySelectorAll("[data-reveal]").forEach(element => revealObserver.observe(element));
 		return () => revealObserver.disconnect();
-	}, [activeCategory]);
+	}, [activeCategory, activeFinish, maxPrice]);
+
+	useEffect(() => {
+		if (!selectedProduct) return;
+		const closeOnEscape = (event: KeyboardEvent) => {
+			if (event.key === "Escape") setSelectedProduct(null);
+		};
+		window.addEventListener("keydown", closeOnEscape);
+		return () => window.removeEventListener("keydown", closeOnEscape);
+	}, [selectedProduct]);
 
 	const showPrompt = (message: string) => {
 		setShippingPrompt(message);
@@ -173,22 +166,15 @@ export default function StorePage() {
 			return { ...prev, [id]: nextQuantity };
 		});
 	};
-	const buyNow = (id: number) => {
-		setCart(previous => {
-			const currentQuantity = previous[id] || 0;
-			const nextQuantity = Math.min(STOCK_LIMIT, currentQuantity + 1);
-			showCartFeedback(id, "Ready in your cart");
-			return { ...previous, [id]: nextQuantity };
-		});
-		scrollToPayment();
-	};
 	const clearCart = () => {
 		setCart({});
 		showPrompt("Cart cleared. You can start fresh anytime.");
 	};
 	const cartItemCount = Object.values(cart).reduce((totalCount, quantity) => totalCount + quantity, 0);
 	const scrollToPayment = () => {
-		document.querySelector(".checkout-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+		const checkout = document.querySelector(".checkout-panel");
+		if (checkout) checkout.scrollIntoView({ behavior: "smooth", block: "start" });
+		else showPrompt("Your cart is empty. Add a piece to begin checkout.");
 	};
 	const buyCartItem = (id: number) => {
 		if (!cart[id]) return;
@@ -244,7 +230,7 @@ export default function StorePage() {
 		}
 	};
 
-	return <div style={{ minHeight: "100vh", background: "#fdfbf7", color: "#111", fontFamily: "Georgia, serif", paddingBottom: 100 }}>
+	return <div className="storefront" id="top">
 		<div className="trust-bar">ALL INDIA DELIVERY <span>•</span> TRUSTED AUTHENTIC BRAND <span>•</span> SECURE PAYMENTS</div>
 		<header className="site-header" style={{ borderBottom: "1px solid #e6dcc3", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", flexWrap: "nowrap", gap: 10 }}>
 			<h1 className="brand-title" style={{ fontSize: 26, letterSpacing: 2, color: "#b38728", margin: 0 }}>TRENDY JEWELLERY</h1>
@@ -260,39 +246,26 @@ export default function StorePage() {
 			</div>
 			<div className="hero-art" aria-hidden="true"><img src="/item3.jpg" alt="" /></div>
 		</section>
-		<main style={{ maxWidth: 1200, margin: "40px auto", padding: "0 20px", display: "grid", gridTemplateColumns: "minmax(0, 2fr) minmax(300px, 1fr)", gap: 40, alignItems: "start" }}>
+		<div className="trust-benefits" aria-label="Shopping benefits"><span><b aria-hidden="true">↺</b> 14-day easy returns</span><span><b aria-hidden="true">▣</b> Secure PhonePe payments</span><span><b aria-hidden="true">⌖</b> Delivery across India</span></div>
+		<main className={`store-layout${cartItemCount ? " has-cart" : ""}`}>
+			<aside className="filter-sidebar" aria-label="Product filters">
+				<p className="section-kicker">REFINE YOUR EDIT</p>
+				<fieldset><legend>Category</legend>{PRODUCT_CATEGORIES.map(category => <button key={category} type="button" className={activeCategory === category ? "filter-option is-active" : "filter-option"} aria-pressed={activeCategory === category} onClick={() => setActiveCategory(category)}>{category}</button>)}</fieldset>
+				<fieldset><legend>Finish</legend>{PRODUCT_FINISHES.map(finish => <button key={finish} type="button" className={activeFinish === finish ? "filter-option is-active" : "filter-option"} aria-pressed={activeFinish === finish} onClick={() => setActiveFinish(finish)}>{finish}</button>)}</fieldset>
+				<label className="price-filter">Price up to <strong>₹{maxPrice.toLocaleString("en-IN")}</strong><input type="range" min="100" max="1200" step="50" value={maxPrice} onChange={event => setMaxPrice(Number(event.target.value))} aria-label="Maximum price" /></label>
+			</aside>
 			<div className="catalog-column" id="collection">
 				<div className="collection-toolbar">
 					<div><p className="section-kicker">SHOP BY STYLE</p><h2>Find your finishing touch</h2></div>
 					<span className="collection-count">{visibleProducts.length} {visibleProducts.length === 1 ? "piece" : "pieces"}</span>
 				</div>
-				<div className="category-filters" role="group" aria-label="Filter products by category">
-					{PRODUCT_CATEGORIES.map(category => <button key={category} type="button" className={`category-chip${activeCategory === category ? " is-active" : ""}`} aria-pressed={activeCategory === category} onClick={() => setActiveCategory(category)}>{category}</button>)}
-				</div>
-				<div className="product-grid" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 24 }}>{visibleProducts.map(product => { const quantity = cart[product.id] || 0; return <div key={product.id} className="luxury-card product-card" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 20 }}><ProductImage src={product.image} alt={product.name} />
-				<span className="product-category">{product.category}</span>
-				<h3>{product.name}</h3>
-				<p>{product.desc}</p>
-				<div className="product-details">
-					{product.specifications ? product.specifications.map(specification => <p key={specification.label}><strong>{specification.label}</strong>{specification.value}</p>) : <>
-						<p><strong>How to wear</strong>{product.use}</p>
-						<p><strong>Wear frequency</strong>{product.wear}</p>
-						<p><strong>Finish &amp; detail</strong>{product.quality}</p>
-					</>}
-				</div>
-				<strong style={{ color: "#b38728" }}>₹{product.price.toLocaleString("en-IN")}</strong>
-				<p className="stock-note">{STOCK_LIMIT - quantity} available</p>
-				<div className="product-actions">
-					<button className="quantity-button" onClick={() => updateQuantity(product.id, -1)}>-</button> <span>{quantity}</span> <button className="quantity-button" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>+</button>
-					<button className="button button-dark" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>Add to cart</button>
-					<button className="button button-gold buy-button" onClick={() => buyNow(product.id)}>Buy Now ⚡</button>
-				</div>
-				{product.id === 6 && <div className="price-alert">
-					<span className="zigzag-line" aria-hidden="true" />
-					<strong>Price-watch pick</strong>
-					<span>Beautiful everyday style at just ₹{product.price.toLocaleString("en-IN")}</span>
-				</div>}
-			</div>; })}</div>
+				<div className="category-filters" role="group" aria-label="Filter products by category">{PRODUCT_CATEGORIES.map(category => <button key={category} type="button" className={`category-chip${activeCategory === category ? " is-active" : ""}`} aria-pressed={activeCategory === category} onClick={() => setActiveCategory(category)}>{category}</button>)}</div>
+				<div className="category-filters finish-filters" role="group" aria-label="Filter products by finish">{PRODUCT_FINISHES.map(finish => <button key={finish} type="button" className={`category-chip${activeFinish === finish ? " is-active" : ""}`} aria-pressed={activeFinish === finish} onClick={() => setActiveFinish(finish)}>{finish}</button>)}</div>
+				<div className="product-grid">{visibleProducts.map(product => { const quantity = cart[product.id] || 0; return <article key={product.id} className="luxury-card product-card" data-reveal>
+					<div className="product-visual"><img className="product-image-primary" src={product.image} alt={product.name} /><img className="product-image-alternate" src={product.editorialImage} alt="" /><button className="quick-add" type="button" aria-label={`Add ${product.name} to cart`} onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>+</button></div>
+					<div className="product-card-copy"><span className="product-category">{product.category}</span><h3>{product.name}</h3><p className="product-short-description">{product.desc}</p><div className="product-card-bottom"><strong className="product-price">₹{product.price.toLocaleString("en-IN")}</strong><button className="product-add-button" type="button" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>{quantity ? `Add · ${quantity} in bag` : "Add to bag"}</button></div><button className="view-details" type="button" onClick={() => setSelectedProduct(product)}>View details <span aria-hidden="true">↗</span></button></div>
+				</article>; })}</div>
+				{visibleProducts.length === 0 && <p className="empty-filter-result">No pieces match these filters.</p>}
 			<section className="suggestions-section" data-reveal>
 				<div className="section-heading">
 					<div><p className="section-kicker">STYLE EDIT</p><h2>More pieces to love</h2></div>
@@ -312,7 +285,7 @@ export default function StorePage() {
 					<article><h3>Simple jewellery care</h3><p>Keep pieces away from water, perfume and cosmetics. Wipe gently after wear and store separately in a dry place.</p></article>
 				</div>
 			</section></div>
-			<aside className="checkout-panel" id="checkout" data-reveal style={{ background: "#fff", border: "1px solid #e6dcc3", borderRadius: 12, padding: 30, height: "fit-content" }}>
+			{cartItemCount > 0 && <aside className="checkout-panel" id="checkout" data-reveal>
 				<h3>Your Cart <span className="cart-panel-count">{cartItemCount} item{cartItemCount === 1 ? "" : "s"}</span></h3>
 				<div className="cart-items">{Object.entries(cart).length ? Object.entries(cart).map(([id, qty]) => { const item = PRODUCTS.find(p => p.id === Number(id))!; return <div className="cart-item" key={id}>
 					<img src={item.image} alt={item.name} />
@@ -356,13 +329,14 @@ export default function StorePage() {
 					)}
 					<UPICheckoutButton amount={total} onPaymentInitiated={createPendingPhonePeOrder} />
 				</div>
-			</aside>
+			</aside>}
 		</main>
 		<a className="store-whatsapp" href="https://wa.me/919279566257" target="_blank" rel="noopener noreferrer" style={{ position: "fixed", bottom: 30, right: 30, fontSize: 30 }}>
 			💬
 		</a>
 		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key} role="status"><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" /><div><small>Cart update</small><span>{cartFeedback.message}</span></div><b aria-hidden="true">🛍</b></div>}
-		{cartItemCount > 0 && <button className="quick-checkout-shortcut" type="button" onClick={scrollToPayment}><span>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong>Review cart &amp; checkout</strong></button>}
+		{selectedProduct && <div className="detail-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedProduct(null); }}><section className="product-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="detail-close" type="button" aria-label="Close product details" onClick={() => setSelectedProduct(null)}>×</button><img className="detail-image" src={selectedProduct.image} alt={selectedProduct.name} /><div className="detail-content"><span className="product-category">{selectedProduct.category} · {selectedProduct.finish}</span><h2 id="detail-title">{selectedProduct.name}</h2><p className="detail-description">{selectedProduct.desc}</p><div className="product-details">{selectedProduct.specifications ? selectedProduct.specifications.map(specification => <p key={specification.label}><strong>{specification.label}</strong>{specification.value}</p>) : <><p><strong>How to wear</strong>{selectedProduct.use}</p><p><strong>Wear frequency</strong>{selectedProduct.wear}</p><p><strong>Finish &amp; detail</strong>{selectedProduct.quality}</p></>}<p><strong>Care</strong>Keep away from water, perfume and cosmetics. Wipe gently after wear and store separately in a dry place.</p></div><div className="detail-purchase"><strong>₹{selectedProduct.price.toLocaleString("en-IN")}</strong><button className="product-add-button" type="button" onClick={() => addToCart(selectedProduct.id)} disabled={(cart[selectedProduct.id] || 0) >= STOCK_LIMIT}>Add to bag</button></div></div></section></div>}
+		<nav className="mobile-bottom-nav" aria-label="Primary navigation"><Link href="/#top"><span aria-hidden="true">⌂</span>Home</Link><a href="#collection"><span aria-hidden="true">▦</span>Shop</a><button type="button" onClick={scrollToPayment}><span className="mobile-cart-icon" aria-hidden="true">♧{cartItemCount > 0 && <b>{cartItemCount}</b>}</span>Cart</button><Link href={session ? "/dashboard" : "/login"}><span aria-hidden="true">◉</span>Account</Link></nav>
 		{shippingPrompt && <div className="shipping-prompt" role="alert"><div><strong>Almost ready</strong><span>{shippingPrompt}</span></div><button type="button" aria-label="Dismiss message" onClick={dismissPrompt}>Dismiss</button></div>}
 	</div>;
 }

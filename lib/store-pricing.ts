@@ -1,17 +1,17 @@
-const PRODUCTS: Record<string, { name: string; price: number }> = {
-  "1": { name: "Akruti Oxidised Damini Maangtikka", price: 599 },
-  "2": { name: "Etnico Kundan Kamarband", price: 426 },
-  "3": { name: "Palak Art Austrian Stone Necklace", price: 1176 },
-  "4": { name: "Maharani Oxidised Stone Jhumki", price: 305 },
-  "5": { name: "Darshana Oxidised Dangler (Type A)", price: 77 },
-  "6": { name: "Darshana Oxidised Dangler (Type B)", price: 52 },
+const PRODUCTS: Record<string, { name: string; price: number; image: string }> = {
+  "1": { name: "Akruti Oxidised Damini Maangtikka", price: 599, image: "/item1.jpg" },
+  "2": { name: "Etnico Kundan Kamarband", price: 426, image: "/item2.jpg" },
+  "3": { name: "Palak Art Austrian Stone Necklace", price: 1176, image: "/item3.jpg" },
+  "4": { name: "Maharani Oxidised Stone Jhumki", price: 305, image: "/item4.jpg" },
+  "5": { name: "Darshana Oxidised Dangler (Type A)", price: 77, image: "/item5.jpg" },
+  "6": { name: "Darshana Oxidised Dangler (Type B)", price: 52, image: "/item6.jpg" },
 };
 
 export function getCartPricing(value: unknown) {
   if (!value || typeof value !== "object" || Array.isArray(value)) return null;
 
   const cart: Record<string, number> = {};
-  const items: Array<{ id: string; name: string; unitPrice: number; quantity: number; lineTotal: number }> = [];
+  const items: Array<{ id: string; name: string; image: string; unitPrice: number; quantity: number; lineTotal: number }> = [];
   let subtotal = 0;
 
   for (const [id, quantity] of Object.entries(value)) {
@@ -22,7 +22,7 @@ export function getCartPricing(value: unknown) {
     cart[id] = quantity;
     const lineTotal = product.price * quantity;
     subtotal += lineTotal;
-    items.push({ id, name: product.name, unitPrice: product.price, quantity, lineTotal });
+    items.push({ id, name: product.name, image: product.image, unitPrice: product.price, quantity, lineTotal });
   }
 
   if (!Object.keys(cart).length) return null;
