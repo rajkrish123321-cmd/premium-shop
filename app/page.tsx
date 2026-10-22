@@ -116,11 +116,16 @@ export default function StorePage() {
 
 	useEffect(() => {
 		if (!selectedProduct) return;
+		const previousOverflow = document.body.style.overflow;
+		document.body.style.overflow = "hidden";
 		const closeOnEscape = (event: KeyboardEvent) => {
 			if (event.key === "Escape") setSelectedProduct(null);
 		};
 		window.addEventListener("keydown", closeOnEscape);
-		return () => window.removeEventListener("keydown", closeOnEscape);
+		return () => {
+			window.removeEventListener("keydown", closeOnEscape);
+			document.body.style.overflow = previousOverflow;
+		};
 	}, [selectedProduct]);
 
 	const showPrompt = (message: string) => {
@@ -264,7 +269,7 @@ export default function StorePage() {
 				<div className="category-filters finish-filters" role="group" aria-label="Filter products by finish">{PRODUCT_FINISHES.map(finish => <button key={finish} type="button" className={`category-chip${activeFinish === finish ? " is-active" : ""}`} aria-pressed={activeFinish === finish} onClick={() => setActiveFinish(finish)}>{finish}</button>)}</div>
 				<div className="product-grid">{visibleProducts.map(product => { const quantity = cart[product.id] || 0; return <article key={product.id} className="luxury-card product-card" data-reveal>
 					<div className="product-visual"><img className="product-image-primary" src={product.image} alt={product.name} /><img className="product-image-alternate" src={product.editorialImage} alt="" /><button className="quick-add" type="button" aria-label={`Add ${product.name} to cart`} onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>+</button></div>
-					<div className="product-card-copy"><span className="product-category">{product.category}</span><h3>{product.name}</h3><p className="product-short-description">{product.desc}</p><div className="product-card-bottom"><strong className="product-price">₹{product.price.toLocaleString("en-IN")}</strong><button className="product-add-button" type="button" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>{quantity ? `Add · ${quantity} in bag` : "Add to bag"}</button></div><button className="view-details" type="button" onClick={() => setSelectedProduct(product)}>View details <span aria-hidden="true">↗</span></button></div>
+					<div className="product-card-copy"><span className="product-category">{product.category}</span><h3>{product.name}</h3><p className="product-short-description">{product.desc}</p><div className="product-card-bottom"><strong className="product-price">₹{product.price.toLocaleString("en-IN")}</strong><button className="product-add-button" type="button" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>{quantity ? `Add · ${quantity} in bag` : "Add to bag"}</button></div><button className="view-details" type="button" onClick={() => { setDetailImageZoomed(false); setSelectedProduct(product); }}>View details <span aria-hidden="true">↗</span></button></div>
 				</article>; })}</div>
 				{visibleProducts.length === 0 && <p className="empty-filter-result">No pieces match these filters.</p>}
 			<section className="suggestions-section" data-reveal>

@@ -1,3 +1,5 @@
+import { createHash, timingSafeEqual } from "node:crypto";
+
 type PhonePeEnvironment = "sandbox" | "production";
 
 type PhonePeOrderStatus = {
@@ -127,4 +129,57 @@ export async function getPhonePeOrderStatus(orderId: string) {
     }
     
     return (await response.json()) as PhonePeOrderStatus;
+}
+
+export function verifyPhonePeWebhookAuthorization(authorization: string) {
+    const username = process.env.PHONEPE_WEBHOOK_USER;
+    const password = process.env.PHONEPE_WEBHOOK_PASS;
+    if (!username || !password || !authorization) return false;
+
+    const expectedValues = [
+        `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}`,
+        createHash("sha256").update(`${username}:${password}`).digest("hex"),
+    ];
+
+    return expectedValues.some(value => {
+        const expected = Buffer.from(value);
+        const received = Buffer.from(authorization);
+        return expected.length === received.length && timingSafeEqual(expected, received);
+    });
+}
+
+export async function createPhonePeRefund({
+    merchantRefundId,
+    originalMerchantOrderId,
+    amount,
+}: {
+    merchantRefundId: string;
+    originalMerchantOrderId: string;
+    amount: number;
+}) {
+    const { config, accessToken } = await getAccessToken();
+    const requestBody = { merchantRefundId, originalMerchantOrderId, amount };
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        Authorization: `O-Bearer ${accessToken}`,
+    };
+    if (process.env.PHONEPE_MERCHANT_ID) headers["X-MERCHANT-ID"] = process.env.PHONEPE_MERCHANT_ID;
+
+    const response = await fetch(`${config.apiBase}/payments/v2/refund`, {
+        method: "POST",
+        headers,
+        body: JSON.stringify(requestBody),
+        cache: "no-store",
+    });
+    const responseText = await response.text();
+    let result: { refundId?: string; state?: string } = {};
+    try {
+        result = responseText ? JSON.parse(responseText) as typeof result : {};
+    } catch {
+        console.error("PhonePe refund returned invalid JSON.", { status: response.status });
+    }
+    if (!response.ok) {
+        console.error("PhonePe refund request failed.", { status: response.status, response: responseText });
+    }
+    return { ok: response.ok, ...result };
 }

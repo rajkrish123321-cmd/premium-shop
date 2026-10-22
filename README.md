@@ -50,9 +50,15 @@ ADMIN_EMAIL
 ADMIN_PASSWORD
 RESEND_API_KEY
 RESEND_FROM_EMAIL
+PHONEPE_CLIENT_ID
+PHONEPE_CLIENT_SECRET
+PHONEPE_CLIENT_VERSION
+PHONEPE_ENV
+PHONEPE_WEBHOOK_USER
+PHONEPE_WEBHOOK_PASS
 ```
 
-Run `neon/schema.sql` in the Neon SQL editor before deploying. `DATABASE_URL` (or `NEON_DATABASE_URL`) is required for accounts and orders. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` enable password reset and order notification emails; email delivery is intentionally best-effort after a paid order is stored.
+Run `neon/schema.sql` in the Neon SQL editor before deploying. For existing installations, run `neon/migrations/20261022_phonepe_refunds.sql` to add the PhonePe refund ledger and reservation balance. `DATABASE_URL` (or `NEON_DATABASE_URL`) is required for accounts and orders. `RESEND_API_KEY` and `RESEND_FROM_EMAIL` enable password reset, order receipts, and confirmed refund emails. Configure the same PhonePe webhook username and password in `PHONEPE_WEBHOOK_USER` and `PHONEPE_WEBHOOK_PASS`, then register `https://<your-domain>/api/phonepe-webhook` for `pg.refund.completed` and `pg.refund.failed` events. Set `PHONEPE_MERCHANT_ID` only when required by a PhonePe partner integration.
 
 For an existing database created by the older Razorpay schema, run `neon/migrations/20261008_upi_orders_compat.sql` once before deploying the UPI checkout. It keeps historical Razorpay IDs intact while allowing new UPI orders.
 

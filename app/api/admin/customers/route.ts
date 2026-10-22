@@ -34,6 +34,10 @@ export async function GET() {
         flaggedForRefund: Boolean(order.flagged_for_refund),
         customerName: order.customer_name,
         customerEmail: order.customer_email,
+        shippingAddress: order.shipping_address,
+        pincode: order.pincode,
+        refundedAmountPaise: Number(order.refunded_amount_paise || 0),
+        latestRefundStatus: order.latest_refund_status,
       })),
     });
   } catch (error) {
