@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import AdminOverlay from "@/components/AdminOverlay";
 import { Providers } from "@/components/providers";
+import { JourneyBanner } from "@/components/JourneyBanner";
 import StoreFooter from "@/components/StoreFooter";
 
 const geistSans = Geist({
@@ -29,6 +30,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     >
       <body className="min-h-full flex flex-col">
         <Providers>
+          <JourneyBanner />
           {children}
           <AdminOverlay />
           <StoreFooter />

@@ -100,6 +100,13 @@ export async function createPhonePePayment({
     redirectUrl: string;
     accessToken?: string;
 }) {
+    if (!orderId.trim() || !Number.isFinite(amount) || amount <= 0 || !Number.isSafeInteger(Math.round(amount * 100))) {
+        throw new Error("A valid order ID and payment amount are required.");
+    }
+    if (!redirectUrl.startsWith("https://")) {
+        throw new Error("A secure checkout return URL is required.");
+    }
+
     const config = getPhonePeConfig();
     const token = accessToken || await getPhonePeAccessToken();
     
