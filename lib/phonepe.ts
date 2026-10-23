@@ -10,6 +10,9 @@ type PhonePeOrderStatus = {
     paymentDetails?: Array<{ transactionId?: string; state?: string }>;
 };
 
+let cachedAccessToken: { value: string; expiresAt: number } | null = null;
+let accessTokenRequest: Promise<string> | null = null;
+
 function getPhonePeConfig() {
     const clientId = process.env.PHONEPE_CLIENT_ID;
     const clientSecret = process.env.PHONEPE_CLIENT_SECRET;
@@ -31,7 +34,7 @@ function getPhonePeConfig() {
     return { apiBase, authUrl, clientId, clientSecret, clientVersion };
 }
 
-async function getAccessToken() {
+async function requestAccessToken() {
     const config = getPhonePeConfig();
     const body = new URLSearchParams({
         client_id: config.clientId as string,
@@ -54,26 +57,51 @@ async function getAccessToken() {
         throw new Error("PhonePe Authorization Failed. Check Vercel Logs for details.");
     }
 
-    const result = await response.json() as { access_token?: string };
+    const result = await response.json() as { access_token?: string; expires_at?: number; expires_in?: number };
 
     if (!result.access_token) {
         console.error("PhonePe returned success but missing access_token:", result);
         throw new Error("PhonePe Auth Failed: No access token provided.");
     }
 
-    return { config, accessToken: result.access_token };
+    const expiresAt = result.expires_at
+        ? result.expires_at * 1000
+        : Date.now() + (result.expires_in ? result.expires_in * 1000 : 5 * 60 * 1000);
+    cachedAccessToken = { value: result.access_token, expiresAt: expiresAt - 60_000 };
+    return result.access_token;
+}
+
+export async function getPhonePeAccessToken() {
+    if (cachedAccessToken && cachedAccessToken.expiresAt > Date.now()) {
+        return cachedAccessToken.value;
+    }
+
+    if (!accessTokenRequest) {
+        accessTokenRequest = requestAccessToken().finally(() => {
+            accessTokenRequest = null;
+        });
+    }
+
+    return accessTokenRequest;
+}
+
+async function getAccessToken() {
+    return { config: getPhonePeConfig(), accessToken: await getPhonePeAccessToken() };
 }
 
 export async function createPhonePePayment({
     orderId,
     amount,
     redirectUrl,
+    accessToken,
 }: {
     orderId: string;
     amount: number;
     redirectUrl: string;
+    accessToken?: string;
 }) {
-    const { config, accessToken } = await getAccessToken();
+    const config = getPhonePeConfig();
+    const token = accessToken || await getPhonePeAccessToken();
     
     const requestBody = {
         merchantOrderId: orderId,
@@ -89,7 +117,7 @@ export async function createPhonePePayment({
         method: "POST",
         headers: {
             "Content-Type": "application/json",
-            Authorization: `O-Bearer ${accessToken}`,
+            Authorization: `O-Bearer ${token}`,
         },
         body: JSON.stringify(requestBody),
         cache: "no-store",

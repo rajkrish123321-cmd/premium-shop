@@ -3,7 +3,10 @@
 
 import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
+import { motion } from "framer-motion";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
 
 import UPICheckoutButton from "@/components/UPICheckoutButton";
 
@@ -37,6 +40,7 @@ const PRODUCT_FINISHES = ["All finishes", "Oxidised", "Kundan", "Stone"];
 const SUGGESTED_PRODUCT_IDS = [3, 4, 6];
 const STOCK_LIMIT = 30;
 const CART_STORAGE_KEY = "trendy-jewellery-cart-v1";
+const PRODUCT_BLUR_DATA_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
 
 const readStoredCart = () => {
 	if (typeof window === "undefined") return {} as { [id: number]: number };
@@ -90,6 +94,7 @@ export default function StorePage() {
 	const [maxPrice, setMaxPrice] = useState(1200);
 	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 	const [detailImageZoomed, setDetailImageZoomed] = useState(false);
+	const [mobileCheckoutOpen, setMobileCheckoutOpen] = useState(false);
 	const promptTimer = useRef<number | null>(null);
 	const feedbackTimer = useRef<number | null>(null);
 	const displayName = session?.user?.name?.trim() || session?.user?.email?.split("@")[0] || "Guest";
@@ -178,6 +183,10 @@ export default function StorePage() {
 	};
 	const cartItemCount = Object.values(cart).reduce((totalCount, quantity) => totalCount + quantity, 0);
 	const scrollToPayment = () => {
+		if (cartItemCount > 0 && window.matchMedia("(max-width: 699px)").matches) {
+			setMobileCheckoutOpen(true);
+			return;
+		}
 		const checkout = document.querySelector(".checkout-panel");
 		if (checkout) checkout.scrollIntoView({ behavior: "smooth", block: "start" });
 		else showPrompt("Your cart is empty. Add a piece to begin checkout.");
@@ -235,8 +244,49 @@ export default function StorePage() {
 			throw new Error(error instanceof Error ? error.message : "Unable to start payment.");
 		}
 	};
+	const renderCheckoutPanel = (id?: string) => <aside className="checkout-panel" id={id}>
+		<h3>Your Cart <span className="cart-panel-count">{cartItemCount} item{cartItemCount === 1 ? "" : "s"}</span></h3>
+		<div className="cart-items">{Object.entries(cart).length ? Object.entries(cart).map(([itemId, qty]) => { const item = PRODUCTS.find(product => product.id === Number(itemId))!; return <div className="cart-item" key={itemId}>
+			<img src={item.image} alt={item.name} />
+			<div className="cart-item-info">
+				<strong>{item.name}</strong>
+				<small>{item.desc}</small>
+				<span>₹{item.price.toLocaleString("en-IN")} each</span>
+				<div className="cart-item-actions">
+					<button className="quantity-button" onClick={() => updateQuantity(item.id, -1)}>-</button>
+					<b>{qty}</b>
+					<button className="quantity-button" onClick={() => addToCart(item.id)} disabled={qty >= STOCK_LIMIT}>+</button>
+					<strong>₹{(item.price * qty).toLocaleString("en-IN")}</strong>
+					<button className="cart-buy-item" onClick={() => buyCartItem(item.id)}>Buy this item</button>
+				</div>
+			</div>
+		</div>; }) : <p className="empty-cart">Your cart is empty. Add a piece to begin.</p>}
+		</div>
+		{cartItemCount > 0 && <button className="buy-full-cart" onClick={buyFullCart}>Buy full cart <span>({cartItemCount} items)</span></button>}
+		<div className="shipping-fields">
+			<h3>Secure Checkout & Shipping</h3>
+			<input className="form-input" placeholder="Full Name" value={name} onChange={event => setName(event.target.value)} required />
+			<input className="form-input" type="email" placeholder="Email Address (order receipt)" value={email} onChange={event => setEmail(event.target.value)} autoComplete="email" required />
+			<input className="form-input" placeholder="Mobile Number" value={phone} onChange={event => setPhone(event.target.value)} required />
+			<input className="form-input" placeholder="Alternate Mobile Number (Optional)" value={altPhone} onChange={event => setAltPhone(event.target.value)} />
+			<textarea className="form-input address-input" placeholder="Detailed Shipping Address" value={address} onChange={event => setAddress(event.target.value)} required />
+			<input className="form-input" placeholder="6-digit Pincode" value={pincode} onChange={event => setPincode(event.target.value.replace(/\D/g, "").slice(0, 6))} required />
+			<input className="form-input" placeholder="Nearby Landmark (Optional)" value={landmark} onChange={event => setLandmark(event.target.value)} />
+		</div>
+		<h4>Order Summary</h4>
+		<p className="summary-line">{cartItemCount} item{cartItemCount === 1 ? "" : "s"} selected</p>
+		<hr />
+		<p>Subtotal: ₹{subtotal.toLocaleString("en-IN")}</p>
+		<p>Estimated IGST (3%): ₹{igst.toLocaleString("en-IN")}</p>
+		<strong>Total Amount: ₹{total.toLocaleString("en-IN")}</strong>
+		<br />
+		<div className="gemini-strip payment-gateway">
+			{cartItemCount > 0 && <button type="button" onClick={clearCart} style={{ marginBottom: 12, width: "100%", padding: "10px 12px", border: "1px solid #d8d0c7", background: "#faf7f2", color: "#3c2d23", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>Clear cart</button>}
+			<UPICheckoutButton amount={total} onPaymentInitiated={createPendingPhonePeOrder} />
+		</div>
+	</aside>;
 
-	return <div className="storefront" id="top">
+	return <Drawer open={mobileCheckoutOpen} onOpenChange={setMobileCheckoutOpen}><div className="storefront" id="top">
 		<div className="trust-bar">ALL INDIA DELIVERY <span>•</span> TRUSTED AUTHENTIC BRAND <span>•</span> SECURE PAYMENTS</div>
 		<header className="site-header" style={{ borderBottom: "1px solid #e6dcc3", padding: "20px 40px", display: "flex", justifyContent: "space-between", alignItems: "center", background: "#fff", flexWrap: "nowrap", gap: 10 }}>
 			<h1 className="brand-title" style={{ fontSize: 26, letterSpacing: 2, color: "#b38728", margin: 0 }}>TRENDY JEWELLERY</h1>
@@ -267,10 +317,10 @@ export default function StorePage() {
 				</div>
 				<div className="category-filters" role="group" aria-label="Filter products by category">{PRODUCT_CATEGORIES.map(category => <button key={category} type="button" className={`category-chip${activeCategory === category ? " is-active" : ""}`} aria-pressed={activeCategory === category} onClick={() => setActiveCategory(category)}>{category}</button>)}</div>
 				<div className="category-filters finish-filters" role="group" aria-label="Filter products by finish">{PRODUCT_FINISHES.map(finish => <button key={finish} type="button" className={`category-chip${activeFinish === finish ? " is-active" : ""}`} aria-pressed={activeFinish === finish} onClick={() => setActiveFinish(finish)}>{finish}</button>)}</div>
-				<div className="product-grid">{visibleProducts.map(product => { const quantity = cart[product.id] || 0; return <article key={product.id} className="luxury-card product-card" data-reveal>
-					<div className="product-visual"><img className="product-image-primary" src={product.image} alt={product.name} /><img className="product-image-alternate" src={product.editorialImage} alt="" /><button className="quick-add" type="button" aria-label={`Add ${product.name} to cart`} onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>+</button></div>
+				<div className="product-grid">{visibleProducts.map(product => { const quantity = cart[product.id] || 0; return <motion.article key={product.id} initial={{ opacity: 0, y: 20 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, amount: 0.15 }} transition={{ duration: 0.5, ease: "easeOut" }} whileHover={{ y: -5 }} className="luxury-card product-card" data-reveal>
+					<div className="product-visual"><Image className="product-image-primary" src={product.image} alt={product.name} fill sizes="(max-width: 699px) 50vw, (max-width: 1200px) 33vw, 25vw" placeholder="blur" blurDataURL={PRODUCT_BLUR_DATA_URL} /><Image className="product-image-alternate" src={product.editorialImage} alt="" fill sizes="(max-width: 699px) 50vw, (max-width: 1200px) 33vw, 25vw" placeholder="blur" blurDataURL={PRODUCT_BLUR_DATA_URL} /><button className="quick-add" type="button" aria-label={`Add ${product.name} to cart`} onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>+</button></div>
 					<div className="product-card-copy"><span className="product-category">{product.category}</span><h3>{product.name}</h3><p className="product-short-description">{product.desc}</p><div className="product-card-bottom"><strong className="product-price">₹{product.price.toLocaleString("en-IN")}</strong><button className="product-add-button" type="button" onClick={() => addToCart(product.id)} disabled={quantity >= STOCK_LIMIT}>{quantity ? `Add · ${quantity} in bag` : "Add to bag"}</button></div><button className="view-details" type="button" onClick={() => { setDetailImageZoomed(false); setSelectedProduct(product); }}>View details <span aria-hidden="true">↗</span></button></div>
-				</article>; })}</div>
+				</motion.article>; })}</div>
 				{visibleProducts.length === 0 && <p className="empty-filter-result">No pieces match these filters.</p>}
 			<section className="suggestions-section" data-reveal>
 				<div className="section-heading">
@@ -291,59 +341,15 @@ export default function StorePage() {
 					<article><h3>Simple jewellery care</h3><p>Keep pieces away from water, perfume and cosmetics. Wipe gently after wear and store separately in a dry place.</p></article>
 				</div>
 			</section></div>
-			{cartItemCount > 0 && <aside className="checkout-panel" id="checkout">
-				<h3>Your Cart <span className="cart-panel-count">{cartItemCount} item{cartItemCount === 1 ? "" : "s"}</span></h3>
-				<div className="cart-items">{Object.entries(cart).length ? Object.entries(cart).map(([id, qty]) => { const item = PRODUCTS.find(p => p.id === Number(id))!; return <div className="cart-item" key={id}>
-					<img src={item.image} alt={item.name} />
-					<div className="cart-item-info">
-						<strong>{item.name}</strong>
-						<small>{item.desc}</small>
-						<span>₹{item.price.toLocaleString("en-IN")} each</span>
-						<div className="cart-item-actions">
-							<button className="quantity-button" onClick={() => updateQuantity(item.id, -1)}>-</button>
-							<b>{qty}</b>
-							<button className="quantity-button" onClick={() => addToCart(item.id)} disabled={qty >= STOCK_LIMIT}>+</button>
-							<strong>₹{(item.price * qty).toLocaleString("en-IN")}</strong>
-							<button className="cart-buy-item" onClick={() => buyCartItem(item.id)}>Buy this item</button>
-						</div>
-					</div>
-				</div>; }) : <p className="empty-cart">Your cart is empty. Add a piece to begin.</p>}
-				</div>
-				{cartItemCount > 0 && <button className="buy-full-cart" onClick={buyFullCart}>Buy full cart <span>({cartItemCount} items)</span></button>}
-				<div className="shipping-fields">
-					<h3>Secure Checkout & Shipping</h3>
-					<input className="form-input" placeholder="Full Name" value={name} onChange={e => setName(e.target.value)} required />
-					<input className="form-input" type="email" placeholder="Email Address (order receipt)" value={email} onChange={e => setEmail(e.target.value)} autoComplete="email" required />
-					<input className="form-input" placeholder="Mobile Number" value={phone} onChange={e => setPhone(e.target.value)} required />
-					<input className="form-input" placeholder="Alternate Mobile Number (Optional)" value={altPhone} onChange={e => setAltPhone(e.target.value)} />
-					<textarea className="form-input address-input" placeholder="Detailed Shipping Address" value={address} onChange={e => setAddress(e.target.value)} required />
-					<input className="form-input" placeholder="6-digit Pincode" value={pincode} onChange={e => setPincode(e.target.value.replace(/\D/g, "").slice(0, 6))} required />
-					<input className="form-input" placeholder="Nearby Landmark (Optional)" value={landmark} onChange={e => setLandmark(e.target.value)} />
-				</div>
-				<h4>Order Summary</h4>
-				<p className="summary-line">{cartItemCount} item{cartItemCount === 1 ? "" : "s"} selected</p>
-				<hr />
-				<p>Subtotal: ₹{subtotal.toLocaleString("en-IN")}</p>
-				<p>Estimated IGST (3%): ₹{igst.toLocaleString("en-IN")}</p>
-				<strong>Total Amount: ₹{total.toLocaleString("en-IN")}</strong>
-				<br />
-				<div className="gemini-strip payment-gateway">
-					{cartItemCount > 0 && (
-						<button type="button" onClick={clearCart} style={{ marginBottom: 12, width: "100%", padding: "10px 12px", border: "1px solid #d8d0c7", background: "#faf7f2", color: "#3c2d23", borderRadius: 8, fontWeight: 700, cursor: "pointer" }}>
-							Clear cart
-						</button>
-					)}
-					<UPICheckoutButton amount={total} onPaymentInitiated={createPendingPhonePeOrder} />
-				</div>
-			</aside>}
+			{cartItemCount > 0 && renderCheckoutPanel("checkout")}
 		</main>
 		<a className="store-whatsapp" href="https://wa.me/919279566257" target="_blank" rel="noopener noreferrer" style={{ position: "fixed", bottom: 30, right: 30, fontSize: 30 }}>
 			💬
 		</a>
 		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key} role="status"><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" /><div><small>Cart update</small><span>{cartFeedback.message}</span></div><b aria-hidden="true">🛍</b></div>}
-		{cartItemCount > 0 && <button className="quick-checkout-shortcut" type="button" onClick={scrollToPayment}><span>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong>Review cart &amp; checkout</strong></button>}
+		{cartItemCount > 0 && <DrawerTrigger asChild><button className="quick-checkout-shortcut" type="button"><span>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong>Review cart &amp; checkout</strong></button></DrawerTrigger>}
 		{selectedProduct && <div className="detail-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedProduct(null); }}><section className="product-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="detail-close" type="button" aria-label="Close product details" onClick={() => setSelectedProduct(null)}>×</button><button className={`detail-image-button${detailImageZoomed ? " is-zoomed" : ""}`} type="button" aria-label={detailImageZoomed ? "Zoom out of product image" : "Zoom in on product image"} aria-pressed={detailImageZoomed} onClick={() => setDetailImageZoomed(value => !value)}><img className="detail-image" src={selectedProduct.image} alt={selectedProduct.name} /><span>{detailImageZoomed ? "Tap to zoom out" : "Tap image to zoom"}</span></button><div className="detail-content"><span className="product-category">{selectedProduct.category} · {selectedProduct.finish}</span><h2 id="detail-title">{selectedProduct.name}</h2><p className="detail-description">{selectedProduct.desc}</p><div className="product-details">{selectedProduct.specifications ? selectedProduct.specifications.map(specification => <p key={specification.label}><strong>{specification.label}</strong>{specification.value}</p>) : <><p><strong>How to wear</strong>{selectedProduct.use}</p><p><strong>Wear frequency</strong>{selectedProduct.wear}</p><p><strong>Finish &amp; detail</strong>{selectedProduct.quality}</p></>}<p><strong>Care</strong>Keep away from water, perfume and cosmetics. Wipe gently after wear and store separately in a dry place.</p></div><div className="detail-purchase"><strong>₹{selectedProduct.price.toLocaleString("en-IN")}</strong><button className="product-add-button" type="button" onClick={() => addToCart(selectedProduct.id)} disabled={(cart[selectedProduct.id] || 0) >= STOCK_LIMIT}>Add to bag</button></div></div></section></div>}
 		<nav className="mobile-bottom-nav" aria-label="Primary navigation"><Link href="/#top"><span aria-hidden="true">⌂</span>Home</Link><a href="#collection"><span aria-hidden="true">▦</span>Shop</a><button type="button" onClick={scrollToPayment}><span className="mobile-cart-icon" aria-hidden="true">♧{cartItemCount > 0 && <b>{cartItemCount}</b>}</span>Cart</button><Link href={session ? "/dashboard" : "/login"}><span aria-hidden="true">◉</span>Account</Link></nav>
 		{shippingPrompt && <div className="shipping-prompt" role="alert"><div><strong>Almost ready</strong><span>{shippingPrompt}</span></div><button type="button" aria-label="Dismiss message" onClick={dismissPrompt}>Dismiss</button></div>}
-	</div>;
+	</div><DrawerContent className="mobile-checkout-drawer"><DrawerHeader><DrawerTitle>Secure checkout</DrawerTitle></DrawerHeader>{cartItemCount > 0 && renderCheckoutPanel()}</DrawerContent></Drawer>;
 }

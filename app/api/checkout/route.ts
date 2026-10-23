@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { createPendingOrder } from "@/lib/neon";
-import { createPhonePePayment } from "@/lib/phonepe";
+import { createPhonePePayment, getPhonePeAccessToken } from "@/lib/phonepe";
 import { getCartPricing } from "@/lib/store-pricing";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -31,16 +31,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Your cart contains invalid items or quantities." }, { status: 400 });
     }
 
-    const pendingOrder = await createPendingOrder({
-      userId,
-      customerName: name,
-      customerPhone: phone,
-      customerEmail: email,
-      shippingAddress: address,
-      pincode,
-      cartItems: pricing.cart,
-      totalAmount: pricing.total,
-    });
+    const [pendingOrder, accessToken] = await Promise.all([
+      createPendingOrder({
+        userId,
+        customerName: name,
+        customerPhone: phone,
+        customerEmail: email,
+        shippingAddress: address,
+        pincode,
+        cartItems: pricing.cart,
+        totalAmount: pricing.total,
+      }),
+      getPhonePeAccessToken(),
+    ]);
 
     if (!pendingOrder?.id) {
       return NextResponse.json({ error: "Unable to create a pending order for payment." }, { status: 500 });
@@ -53,6 +56,7 @@ export async function POST(request: Request) {
 			orderId: pendingOrder.id,
 			amount: pricing.total,
 			redirectUrl: redirectUrl.toString(),
+      accessToken,
 		});
 
     return NextResponse.json({
