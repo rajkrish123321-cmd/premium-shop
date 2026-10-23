@@ -32,7 +32,8 @@ export default function UPICheckoutButton({ amount, onPaymentInitiated }: UPIChe
   return (
     <div className="phonepe-checkout">
       {!paymentRequest ? (
-        <button type="button" className="upi-checkout-button" onClick={handlePayment} disabled={loading || !amount}>
+        <button type="button" className="upi-checkout-button" onClick={handlePayment} disabled={loading || !amount} aria-busy={loading}>
+          {loading && <span className="checkout-spinner" aria-hidden="true" />}
           {loading ? "Preparing secure payment..." : `Pay securely with PhonePe · ₹${amount.toLocaleString("en-IN")}`}
         </button>
       ) : (

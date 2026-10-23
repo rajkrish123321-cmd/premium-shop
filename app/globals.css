@@ -487,6 +487,8 @@
 .upi-checkout { display: grid; gap: 8px; }
 .upi-checkout-button { display: flex; min-height: 48px; align-items: center; justify-content: center; width: 100%; border: 0; border-radius: 6px; padding: 12px 14px; background: #5b451d; color: #fff; font: 700 14px/1.3 Arial, sans-serif; text-align: center; text-decoration: none; cursor: pointer; }
 .upi-checkout-button:disabled { cursor: wait; opacity: .7; }
+.checkout-spinner { width: 15px; height: 15px; flex: 0 0 auto; margin-right: 9px; border: 2px solid rgba(255,255,255,.4); border-top-color: #fff; border-radius: 50%; animation: checkoutSpinner .7s linear infinite; }
+@keyframes checkoutSpinner { to { transform: rotate(360deg); } }
 .upi-payment-ready { display: grid; gap: 8px; }
 .upi-payment-ready p { margin: 0; color: #3c3529; font: 12px/1.45 Arial, sans-serif; text-align: center; overflow-wrap: anywhere; }
 .payment-error { margin: 0; border-left: 3px solid #b33b32; padding: 8px 10px; background: #fff2ef; color: #78251f; font: 12px/1.45 Arial, sans-serif; overflow-wrap: anywhere; }
@@ -520,6 +522,10 @@
 	color: #fff;
 	font: 700 34px Arial, sans-serif;
 }
+
+.redirect-copy { margin: 22px 0 8px; color: #777; font: 12px Arial, sans-serif; }
+.success-redirect-track { height: 3px; overflow: hidden; background: #eee9df; }
+.success-redirect-track > div { height: 100%; background: #8b681f; }
 
 .success-eyebrow {
 	margin: 0 0 10px;

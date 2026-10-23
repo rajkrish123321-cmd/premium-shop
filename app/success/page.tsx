@@ -1,9 +1,10 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import Image from "next/image";
+import { motion } from "framer-motion";
 
 type Receipt = {
 	orderId: string;
@@ -16,6 +17,7 @@ type Receipt = {
 
 function SuccessContent() {
 	const searchParams = useSearchParams();
+	const router = useRouter();
 	const orderId = searchParams.get("order_id") || "";
 	const [paymentStatus, setPaymentStatus] = useState<"checking" | "pending" | "paid" | "failed" | "error">("checking");
 	const [receipt, setReceipt] = useState<Receipt | null>(null);
@@ -58,6 +60,12 @@ function SuccessContent() {
 		};
 	}, [orderId]);
 
+	useEffect(() => {
+		if (paymentStatus !== "paid" || !receipt) return;
+		const timer = setTimeout(() => router.push("/"), 4000);
+		return () => clearTimeout(timer);
+	}, [paymentStatus, receipt, router]);
+
 	const visiblePaymentStatus = orderId ? paymentStatus : "error";
 	const visibleErrorMessage = orderId ? errorMessage : "No order reference was provided. Check your order history or contact the store.";
 
@@ -67,8 +75,8 @@ function SuccessContent() {
 			: receiptStatus === "sender_not_configured"
 				? "Your payment is confirmed. Email receipts are not configured, so this on-page receipt is ready to print."
 				: "Your payment is confirmed. Email delivery was not accepted, but this on-page receipt is ready to print.";
-		return <main className="success-page"><section className="success-card receipt-card" aria-live="polite">
-			<div className="success-mark" aria-hidden="true">✓</div>
+		return <main className="success-page"><motion.section className="success-card receipt-card" aria-live="polite" initial={{ opacity: 0, scale: 0.96, y: 12 }} animate={{ opacity: 1, scale: 1, y: 0 }} transition={{ duration: 0.45, ease: "easeOut" }}>
+			<motion.div className="success-mark" aria-hidden="true" initial={{ scale: 0.7 }} animate={{ scale: 1 }} transition={{ duration: 0.4, ease: "backOut" }}>✓</motion.div>
 			<p className="success-eyebrow">Payment successful</p>
 			<h1>Thank you, {receipt.customerName}</h1>
 			<p className="success-copy">Your order is confirmed. We will arrange shipping and share tracking details after dispatch.</p>
@@ -77,7 +85,9 @@ function SuccessContent() {
 			<div className="receipt-items"><h2>Order receipt</h2>{receipt.items.map(item => <div className="receipt-item" key={item.id}><Image src={item.image} alt={item.name} width={52} height={52} /><span>{item.name}<small>₹{item.unitPrice.toLocaleString("en-IN")} × {item.quantity}</small></span><strong>₹{item.lineTotal.toLocaleString("en-IN")}</strong></div>)}<div className="receipt-total"><span>Total paid</span><strong>₹{receipt.amount.toLocaleString("en-IN")}</strong></div></div>
 			<p className={`receipt-status ${receiptStatus === "sent" || receiptStatus === "already_sent" ? "receipt-status-sent" : "receipt-status-pending"}`}>{emailMessage}</p>
 			<div className="receipt-actions"><button className="success-button" type="button" onClick={() => window.print()}>Print receipt</button><Link className="success-button" href="/">Continue shopping</Link></div>
-		</section></main>;
+			<p className="redirect-copy">Returning to the store shortly</p>
+			<div className="success-redirect-track" aria-hidden="true"><motion.div initial={{ width: "0%" }} animate={{ width: "100%" }} transition={{ duration: 4, ease: "linear" }} /></div>
+		</motion.section></main>;
 	}
 
 	const failed = visiblePaymentStatus === "failed";
