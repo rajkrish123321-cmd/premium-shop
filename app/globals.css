@@ -341,6 +341,7 @@
 .buy-full-cart { width: 100%; margin: 0 0 22px; padding: 11px 14px; border: 1px solid #b38728; background: #fffaf0; color: #6f5018; cursor: pointer; font: 700 12px Arial, sans-serif; letter-spacing: 0.5px; }
 .buy-full-cart span { font-weight: 400; }
 .buy-full-cart:hover { background: #f6e8c9; }
+.buy-full-cart:disabled { cursor: wait; opacity: .7; }
 .shipping-fields { padding-top: 4px; border-top: 1px solid #eee5d5; }
 .shipping-fields:focus-within { border-top-color: #b38728; box-shadow: 0 -4px 0 rgba(179, 135, 40, .1); }
 .shipping-fields h3 { display: block; margin: 18px 0 14px; }

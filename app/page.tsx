@@ -95,6 +95,7 @@ export default function StorePage() {
 	const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 	const [detailImageZoomed, setDetailImageZoomed] = useState(false);
 	const [mobileCheckoutOpen, setMobileCheckoutOpen] = useState(false);
+	const [fullCartCheckoutLoading, setFullCartCheckoutLoading] = useState(false);
 	const promptTimer = useRef<number | null>(null);
 	const feedbackTimer = useRef<number | null>(null);
 	const displayName = session?.user?.name?.trim() || session?.user?.email?.split("@")[0] || "Guest";
@@ -201,13 +202,6 @@ export default function StorePage() {
 		if (!cart[id]) return;
 		scrollToPayment();
 	};
-	const buyFullCart = () => {
-		if (!cartItemCount) {
-			showPrompt("Your cart is waiting for one beautiful piece before checkout.");
-			return;
-		}
-		scrollToPayment();
-	};
 	const subtotal = Object.entries(cart).reduce((acc, [id, qty]) => {
 		const product = PRODUCTS.find(p => p.id === Number(id));
 		return acc + (product ? product.price * qty : 0);
@@ -250,6 +244,18 @@ export default function StorePage() {
 			throw new Error(error instanceof Error ? error.message : "Unable to start payment.");
 		}
 	};
+	const handleFullCartCheckout = async () => {
+		if (fullCartCheckoutLoading || !cartItemCount) return;
+		setFullCartCheckoutLoading(true);
+		try {
+			const request = await createPendingPhonePeOrder();
+			if (request) window.location.assign(request.paymentUrl);
+		} catch (error) {
+			showPrompt(error instanceof Error ? error.message : "Unable to start payment. Please try again.");
+		} finally {
+			setFullCartCheckoutLoading(false);
+		}
+	};
 	const renderCheckoutPanel = (id?: string) => <aside className="checkout-panel" id={id}>
 		<h3>Your Cart <span className="cart-panel-count">{cartItemCount} item{cartItemCount === 1 ? "" : "s"}</span></h3>
 		<div className="cart-items">{Object.entries(cart).length ? Object.entries(cart).map(([itemId, qty]) => { const item = PRODUCTS.find(product => product.id === Number(itemId))!; return <div className="cart-item" key={itemId}>
@@ -268,7 +274,7 @@ export default function StorePage() {
 			</div>
 		</div>; }) : <p className="empty-cart">Your cart is empty. Add a piece to begin.</p>}
 		</div>
-		{cartItemCount > 0 && <button className="buy-full-cart" onClick={buyFullCart}>Buy full cart <span>({cartItemCount} items)</span></button>}
+		{cartItemCount > 0 && <button className="buy-full-cart" type="button" onClick={handleFullCartCheckout} disabled={fullCartCheckoutLoading || !cartItemCount} aria-busy={fullCartCheckoutLoading}>{fullCartCheckoutLoading ? <><span className="checkout-spinner" aria-hidden="true" /> Preparing secure payment...</> : <>Buy full cart <span>({cartItemCount} items)</span></>}</button>}
 		<div className="shipping-fields">
 			<h3>Secure Checkout & Shipping</h3>
 			<input className="form-input" placeholder="Full Name" value={name} onChange={event => setName(event.target.value)} required />
@@ -353,7 +359,7 @@ export default function StorePage() {
 			💬
 		</a>
 		{cartFeedback && <div className="cart-feedback" key={cartFeedback.key} role="status"><img src={PRODUCTS.find(product => product.id === cartFeedback.id)?.image} alt="" /><div><small>Cart update</small><span>{cartFeedback.message}</span></div><b aria-hidden="true">🛍</b></div>}
-		{cartItemCount > 0 && <DrawerTrigger asChild><button className="quick-checkout-shortcut" type="button"><span>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong>Review cart &amp; checkout</strong></button></DrawerTrigger>}
+		{cartItemCount > 0 && !mobileCheckoutOpen && <DrawerTrigger asChild><button className="quick-checkout-shortcut" type="button"><span>{cartItemCount} item{cartItemCount === 1 ? "" : "s"} · ₹{total.toLocaleString("en-IN")}</span><strong>Review cart &amp; checkout</strong></button></DrawerTrigger>}
 		{selectedProduct && <div className="detail-backdrop" onMouseDown={event => { if (event.target === event.currentTarget) setSelectedProduct(null); }}><section className="product-detail-sheet" role="dialog" aria-modal="true" aria-labelledby="detail-title"><button className="detail-close" type="button" aria-label="Close product details" onClick={() => setSelectedProduct(null)}>×</button><button className={`detail-image-button${detailImageZoomed ? " is-zoomed" : ""}`} type="button" aria-label={detailImageZoomed ? "Zoom out of product image" : "Zoom in on product image"} aria-pressed={detailImageZoomed} onClick={() => setDetailImageZoomed(value => !value)}><img className="detail-image" src={selectedProduct.image} alt={selectedProduct.name} /><span>{detailImageZoomed ? "Tap to zoom out" : "Tap image to zoom"}</span></button><div className="detail-content"><span className="product-category">{selectedProduct.category} · {selectedProduct.finish}</span><h2 id="detail-title">{selectedProduct.name}</h2><p className="detail-description">{selectedProduct.desc}</p><div className="product-details">{selectedProduct.specifications ? selectedProduct.specifications.map(specification => <p key={specification.label}><strong>{specification.label}</strong>{specification.value}</p>) : <><p><strong>How to wear</strong>{selectedProduct.use}</p><p><strong>Wear frequency</strong>{selectedProduct.wear}</p><p><strong>Finish &amp; detail</strong>{selectedProduct.quality}</p></>}<p><strong>Care</strong>Keep away from water, perfume and cosmetics. Wipe gently after wear and store separately in a dry place.</p></div><div className="detail-purchase"><strong>₹{selectedProduct.price.toLocaleString("en-IN")}</strong><button className="product-add-button" type="button" onClick={() => addToCart(selectedProduct.id)} disabled={(cart[selectedProduct.id] || 0) >= STOCK_LIMIT}>Add to bag</button></div></div></section></div>}
 		<nav className="mobile-bottom-nav" aria-label="Primary navigation"><Link href="/#top"><span aria-hidden="true">⌂</span>Home</Link><a href="#collection"><span aria-hidden="true">▦</span>Shop</a><button type="button" onClick={scrollToPayment}><span className="mobile-cart-icon" aria-hidden="true">♧{cartItemCount > 0 && <b>{cartItemCount}</b>}</span>Cart</button><Link href={session ? "/dashboard" : "/login"}><span aria-hidden="true">◉</span>Account</Link></nav>
 		{shippingPrompt && <div className="shipping-prompt" role="alert"><div><strong>Almost ready</strong><span>{shippingPrompt}</span></div><button type="button" aria-label="Dismiss message" onClick={dismissPrompt}>Dismiss</button></div>}
