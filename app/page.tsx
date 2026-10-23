@@ -154,6 +154,7 @@ export default function StorePage() {
 		if (updated <= 0) {
 			const copy = { ...prev };
 			delete copy[id];
+			if (Object.values(copy).reduce((count, quantity) => count + quantity, 0) === 0) setMobileCheckoutOpen(false);
 			if (currentQuantity > 0) {
 				showCartFeedback(id, "Removed from cart");
 			}
@@ -183,6 +184,7 @@ export default function StorePage() {
 	};
 	const clearCart = () => {
 		setCart({});
+		setMobileCheckoutOpen(false);
 		showPrompt("Cart cleared. You can start fresh anytime.");
 	};
 	const cartItemCount = Object.values(cart).reduce((totalCount, quantity) => totalCount + quantity, 0);
